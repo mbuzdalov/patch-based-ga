@@ -1,2 +1,21 @@
+# Common files
 *.class
 *.log
+
+# IDEA files
+/.bsp/
+/.idea/
+/out/
+
+# Eclipse files
+.project
+.classpath
+.metadata
+.cache
+bin/
+
+# Compiled outputs
+/target/
+/project/target/
+/project/build.properties
+/project/project/
