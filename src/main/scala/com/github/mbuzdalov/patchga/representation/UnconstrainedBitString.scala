@@ -4,12 +4,14 @@ import scala.annotation.tailrec
 
 import com.github.mbuzdalov.patchga.config.*
 
-trait UnconstrainedBitString(size: Int) extends IndividualType, PatchSizeType, IntegralPatchSize, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:
+trait UnconstrainedBitString(size: Int) extends IndividualType, PatchSizeType, IntegralPatchSize, MaximumPatchSize, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:
   self: RandomProvider =>
     override type Individual = Array[Boolean]
     override type PatchSize = Int
 
     override def fromInt(distance: Int): PatchSize = distance
+    override def toInt(patchSize: PatchSize): Int = patchSize
+    override def maximumPatchSize: PatchSize = size
 
     override def mutate(individual: Individual, distance: PatchSize): Individual =
       assert(size == individual.length)
