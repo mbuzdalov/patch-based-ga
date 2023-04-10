@@ -11,7 +11,7 @@ object RandomizedLocalSearch extends Optimizer:
 
     @tailrec
     def go(curr: IndividualHandle): Nothing =
-      val next = mutateH(curr, patchSizeFromInt(1))
+      val next = mutateH(curr, 1)
       if compare(fitnessH(curr), fitnessH(next)) <= 0 then
         discardH(curr)
         go(next)

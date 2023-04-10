@@ -14,7 +14,7 @@ class OnePlusOneEA(distributionSource: Int => IntegerDistribution) extends Optim
 
     @tailrec
     def go(curr: IndividualHandle): Nothing =
-      val next = mutateH(curr, patchSizeFromInt(distribution.sample(random)))
+      val next = mutateH(curr, distribution.sample(random))
       if compare(fitnessH(curr), fitnessH(next)) <= 0 then
         discardH(curr)
         go(next)
