@@ -4,20 +4,17 @@ import scala.annotation.tailrec
 
 import com.github.mbuzdalov.patchga.config.*
 
-trait UnconstrainedBitString(size: Int) extends IndividualType, PatchSizeType, IntegralPatchSize, MaximumPatchSize, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:
+trait UnconstrainedBitString(size: Int) extends IndividualType, MaximumPatchSize, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:
   self: RandomProvider =>
     override type Individual = Array[Boolean]
-    override type PatchSize = Int
 
-    override def patchSizeFromInt(distance: Int): PatchSize = distance
-    override def patchSizeToInt(patchSize: PatchSize): Int = patchSize
-    override def maximumPatchSize: PatchSize = size
+    override def maximumPatchSize: Int = size
 
-    override def mutate(individual: Individual, distance: PatchSize): Individual =
+    override def mutate(individual: Individual, distance: Int): Individual =
       assert(size == individual.length)
       mutateImpl(individual.clone(), 0, distance)
 
-    override def crossover(mainParent: Individual, auxParent: Individual, distanceToMainFunction: PatchSize => PatchSize): Individual =
+    override def crossover(mainParent: Individual, auxParent: Individual, distanceToMainFunction: Int => Int): Individual =
       assert(size == mainParent.length)
       assert(size == auxParent.length)
       // First, count the number of differing bits between the parents

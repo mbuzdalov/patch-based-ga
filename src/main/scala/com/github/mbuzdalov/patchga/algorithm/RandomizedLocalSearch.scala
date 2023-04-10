@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 import com.github.mbuzdalov.patchga.config.*
 
 object RandomizedLocalSearch extends Optimizer:
-  type RequiredConfig = FitnessType & PatchSizeType & Population & IntegralPatchSize & FitnessComparator
+  type RequiredConfig = FitnessType & Population & FitnessComparator
   def optimize(conf: RequiredConfig): Nothing =
     import conf._
 

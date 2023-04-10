@@ -7,7 +7,7 @@ import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, IntegerDistribution}
 
 class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionSource: Int => IntegerDistribution) extends Optimizer:
-  type RequiredConfig = FitnessType & PatchSizeType & Population & IntegralPatchSize & MaximumPatchSize & FitnessComparator & RandomProvider
+  type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
 
   override def optimize(config: RequiredConfig): Nothing =
     import config._

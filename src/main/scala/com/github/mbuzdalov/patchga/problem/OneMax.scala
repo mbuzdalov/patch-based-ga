@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.problem
 
-import com.github.mbuzdalov.patchga.config.{FitnessComparator, FitnessType, IndividualType, PatchSizeType, SimpleFitnessFunction}
+import com.github.mbuzdalov.patchga.config.{FitnessComparator, FitnessType, IndividualType, SimpleFitnessFunction}
 
 trait OneMax extends FitnessType, SimpleFitnessFunction, FitnessComparator:
   self: IndividualType {
