@@ -14,8 +14,8 @@ trait NaiveScratchPopulation extends Population:
       new LazyFitIndividual(newRandomIndividual())
     override def mutateH(handle: IndividualHandle, distance: PatchSize): IndividualHandle =
       new LazyFitIndividual(mutate(handle.individual, distance))
-    override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle, distanceToMain: PatchSize): IndividualHandle =
-      new LazyFitIndividual(crossover(mainParent.individual, auxParent.individual, distanceToMain))
+    override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle, distanceToMainFunction: PatchSize => PatchSize): IndividualHandle =
+      new LazyFitIndividual(crossover(mainParent.individual, auxParent.individual, distanceToMainFunction))
 
     override def fitnessH(handle: IndividualHandle): Fitness =
       handle.fitness

@@ -17,7 +17,7 @@ trait UnconstrainedBitString(size: Int) extends IndividualType, PatchSizeType, I
       assert(size == individual.length)
       mutateImpl(individual.clone(), 0, distance)
 
-    override def crossover(mainParent: Individual, auxParent: Individual, distanceToMain: PatchSize): Individual =
+    override def crossover(mainParent: Individual, auxParent: Individual, distanceToMainFunction: PatchSize => PatchSize): Individual =
       assert(size == mainParent.length)
       assert(size == auxParent.length)
       // First, count the number of differing bits between the parents
@@ -26,15 +26,16 @@ trait UnconstrainedBitString(size: Int) extends IndividualType, PatchSizeType, I
         if mainParent(i) != auxParent(i) then countDifferences += 1
 
       // Second, iterate over the differing bits again and mutate them in the result as appropriately
-      var remaining = distanceToMain
-      var scanned = 0
+      var remaining = distanceToMainFunction(countDifferences)
       val result = mainParent.clone()
-      for i <- 0 until size do
-        if mainParent(i) != auxParent(i) then
-          if random.nextInt(countDifferences - scanned) < remaining then
-            result(i) ^= true
-            remaining -= 1
-          scanned += 1
+      if remaining > 0 then
+        var scanned = 0
+        for i <- 0 until size do
+          if mainParent(i) != auxParent(i) then
+            if random.nextInt(countDifferences - scanned) < remaining then
+              result(i) ^= true
+              remaining -= 1
+            scanned += 1
 
       // Note that if distanceToMain is greater than the number of differing bits, we flip all of them
       result
