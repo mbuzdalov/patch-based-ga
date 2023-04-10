@@ -9,8 +9,8 @@ trait UnconstrainedBitString(size: Int) extends IndividualType, PatchSizeType, I
     override type Individual = Array[Boolean]
     override type PatchSize = Int
 
-    override def fromInt(distance: Int): PatchSize = distance
-    override def toInt(patchSize: PatchSize): Int = patchSize
+    override def patchSizeFromInt(distance: Int): PatchSize = distance
+    override def patchSizeToInt(patchSize: PatchSize): Int = patchSize
     override def maximumPatchSize: PatchSize = size
 
     override def mutate(individual: Individual, distance: PatchSize): Individual =
