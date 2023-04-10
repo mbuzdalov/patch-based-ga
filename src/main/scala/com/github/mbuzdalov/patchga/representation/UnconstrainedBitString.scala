@@ -3,6 +3,7 @@ package com.github.mbuzdalov.patchga.representation
 import scala.annotation.tailrec
 
 import com.github.mbuzdalov.patchga.config.*
+import com.github.mbuzdalov.patchga.infra.Loops
 
 trait UnconstrainedBitString(size: Int) extends IndividualType, MaximumPatchSize, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:
   self: RandomProvider =>
@@ -19,20 +20,20 @@ trait UnconstrainedBitString(size: Int) extends IndividualType, MaximumPatchSize
       assert(size == auxParent.length)
       // First, count the number of differing bits between the parents
       var countDifferences = 0
-      for i <- 0 until size do
-        if mainParent(i) != auxParent(i) then countDifferences += 1
+      Loops.inRange(0, size)(i => if mainParent(i) != auxParent(i) then countDifferences += 1)
 
       // Second, iterate over the differing bits again and mutate them in the result as appropriately
       var remaining = distanceToMainFunction(countDifferences)
       val result = mainParent.clone()
       if remaining > 0 then
         var scanned = 0
-        for i <- 0 until size do
+        Loops.inRange(0, size) { i =>
           if mainParent(i) != auxParent(i) then
             if random.nextInt(countDifferences - scanned) < remaining then
               result(i) ^= true
               remaining -= 1
             scanned += 1
+        }
 
       // Note that if distanceToMain is greater than the number of differing bits, we flip all of them
       result
@@ -48,7 +49,7 @@ trait UnconstrainedBitString(size: Int) extends IndividualType, MaximumPatchSize
         individual
       else if size - current <= remaining then
         // All remaining bits need to be flipped. Can be done in a simple way too.
-        for i <- current until size do individual(i) ^= true
+        Loops.inRange(current, size)(i => individual(i) ^= true)
         individual
       else if random.nextInt(size - current) < remaining then
         // With probability remaining / (size - current), the current bit needs to be flipped.
