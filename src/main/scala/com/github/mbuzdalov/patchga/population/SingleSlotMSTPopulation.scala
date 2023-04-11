@@ -67,18 +67,11 @@ trait SingleSlotMSTPopulation extends Population:
     collectPatchFromCurrent(null, auxParent)
     val interParentDistance = mutablePatchSize(masterPatch)
     val desiredDistance = distanceToMainFunction(interParentDistance)
-    if desiredDistance == 0 then
-      mainParent.referenceCount += 1
-      mainParent
-    else if desiredDistance == interParentDistance then
-      auxParent.referenceCount += 1
-      auxParent
-    else
-      subSampleMutablePatchToSize(masterPatch, desiredDistance)
-      val oldToNewPatch = createImmutableVersion(masterPatch)
-      val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
-      reconnect(newNode)
-      currentNode
+    subSampleMutablePatchToSize(masterPatch, desiredDistance)
+    val oldToNewPatch = createImmutableVersion(masterPatch)
+    val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
+    reconnect(newNode)
+    currentNode
 
   private def reconnect(newNode: Node): Unit =
     val shortestDistance = computeShortestDistance(null, currentNode)
