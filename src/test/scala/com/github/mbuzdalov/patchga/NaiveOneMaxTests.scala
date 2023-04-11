@@ -37,7 +37,7 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
     val n = 512
     val expectedEvs = expected(n)
     val RunResults(evs, _) = run(optimizer)(problem(n))
-    evs shouldBe expectedEvs +- (0.3 * expectedEvs)
+    evs shouldBe expectedEvs +- (0.2 * expectedEvs)
 
   "RLS on OneMax" should "work well with naive population" in
     simpleTest(n => n * math.log(n))
@@ -49,12 +49,21 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
               (OnePlusOneEA.withStandardBitMutation)
               (n => new NaiveOneMax(n))
 
-  "(2+1) GA on OneMax" should "work well with naive population" in
-    simpleTest(n => math.E * n * math.log(n))
-              (new MuPlusOneGA(2, 0.5, n => BinomialDistribution(n, 1.0 / n)))
+  // constants for (2+1) GA are taken from https://link.springer.com/article/10.1007/s00453-021-00893-w
+
+  "(2+1) GA on OneMax" should "work well with naive population using c=1" in
+    simpleTest(n => 2.224 * n * math.log(n))
+              (new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.0 / n)))
               (n => new NaiveOneMax(n))
 
+  it should "work well with naive population using c=1.2122" in
+    simpleTest(n => 2.18417 * n * math.log(n))
+              (new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.2122 / n)))
+              (n => new NaiveOneMax(n))
+
+  // constants for (10+1) GA are taken from https://link.springer.com/article/10.1007/s00453-020-00743-1
+
   "(10+1) GA on OneMax" should "work well with naive population" in
-    simpleTest(n => math.E * n * math.log(n))
-              (new MuPlusOneGA(10, 0.5, n => BinomialDistribution(n, 1.0 / n)))
+    simpleTest(n => 1.66 * n * math.log(n))
+              (new MuPlusOneGA(10, 1.0, n => BinomialDistribution(n, 1.43 / n)))
               (n => new NaiveOneMax(n))
