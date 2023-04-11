@@ -38,16 +38,20 @@ object TimeMeasurements:
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
 
   def main(args: Array[String]): Unit =
-    for n <- Seq(256, 512, 1024, 2048) do
-      val runMany = run(40000 / n)
-      val twoPlusOneGA = new MuPlusOneGA(2, 0.5, n => BinomialDistribution(n, 1.0 / n))
-      println(n)
-      println("RLS:")
-      println(s"  naive: ${runMany(RandomizedLocalSearch)(new NaiveOneMax(n)).timeOfEval}")
-      println(s"  incre: ${runMany(RandomizedLocalSearch)(new IncrementalOneMax(n)).timeOfEval}")
-      println("(1+1) EA:")
-      println(s"  naive: ${runMany(OnePlusOneEA.withStandardBitMutation)(new NaiveOneMax(n)).timeOfEval}")
-      println(s"  incre: ${runMany(OnePlusOneEA.withStandardBitMutation)(new IncrementalOneMax(n)).timeOfEval}")
-      println("(2+1) GA:")
-      println(s"  naive: ${runMany(twoPlusOneGA)(new NaiveOneMax(n)).timeOfEval}")
-      println(s"  incre: ${runMany(twoPlusOneGA)(new IncrementalOneMax(n)).timeOfEval}")
+    for w <- 0 to 2 do
+      println("******************************************")
+      println(s"************ Warm-up round $w ************")
+      println("******************************************")
+      for n <- Seq(256, 512, 1024, 2048, 4096) do
+        val runMany = run(40960 / n)
+        val twoPlusOneGA = new MuPlusOneGA(2, 0.5, n => BinomialDistribution(n, 1.0 / n))
+        println(n)
+        println("RLS:")
+        println(s"  naive: ${runMany(RandomizedLocalSearch)(new NaiveOneMax(n)).timeOfEval}")
+        println(s"  incre: ${runMany(RandomizedLocalSearch)(new IncrementalOneMax(n)).timeOfEval}")
+        println("(1+1) EA:")
+        println(s"  naive: ${runMany(OnePlusOneEA.withStandardBitMutation)(new NaiveOneMax(n)).timeOfEval}")
+        println(s"  incre: ${runMany(OnePlusOneEA.withStandardBitMutation)(new IncrementalOneMax(n)).timeOfEval}")
+        println("(2+1) GA:")
+        println(s"  naive: ${runMany(twoPlusOneGA)(new NaiveOneMax(n)).timeOfEval}")
+        println(s"  incre: ${runMany(twoPlusOneGA)(new IncrementalOneMax(n)).timeOfEval}")
