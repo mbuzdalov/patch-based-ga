@@ -4,7 +4,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
 import com.github.mbuzdalov.patchga.config.*
-import com.github.mbuzdalov.patchga.infra.Loops
+import com.github.mbuzdalov.patchga.util.Loops
 
 trait SingleSlotMSTPopulation extends Population:
   self: IndividualType & FitnessType & PatchType & NewRandomIndividual & SimpleFitnessFunction & IncrementalFitnessFunction =>

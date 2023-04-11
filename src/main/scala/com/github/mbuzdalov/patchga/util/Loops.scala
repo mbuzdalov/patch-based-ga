@@ -1,4 +1,4 @@
-package com.github.mbuzdalov.patchga.infra
+package com.github.mbuzdalov.patchga.util
 
 object Loops:
   inline def loop(from: Int, until: Int)(inline function: Int => Any): Unit =

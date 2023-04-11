@@ -1,7 +1,7 @@
 package com.github.mbuzdalov.patchga.problem
 
 import com.github.mbuzdalov.patchga.config._
-import com.github.mbuzdalov.patchga.infra.Loops
+import com.github.mbuzdalov.patchga.util.Loops
 
 trait OneMax extends FitnessType, SimpleFitnessFunction, FitnessComparator:
   self: IndividualType { type Individual <: Array[Boolean] } =>

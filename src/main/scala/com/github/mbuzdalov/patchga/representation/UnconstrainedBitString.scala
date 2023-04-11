@@ -3,8 +3,7 @@ package com.github.mbuzdalov.patchga.representation
 import scala.annotation.tailrec
 
 import com.github.mbuzdalov.patchga.config.*
-import com.github.mbuzdalov.patchga.infra.Loops
-import com.github.mbuzdalov.patchga.util.MutableIntSet
+import com.github.mbuzdalov.patchga.util.{Loops, MutableIntSet}
 
 trait UnconstrainedBitString(size: Int)
   extends IndividualType, MaximumPatchSize, PatchType, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:

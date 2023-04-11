@@ -1,8 +1,6 @@
 package com.github.mbuzdalov.patchga.util
 
 import java.util.Random
-
-import com.github.mbuzdalov.patchga.infra.Loops
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
