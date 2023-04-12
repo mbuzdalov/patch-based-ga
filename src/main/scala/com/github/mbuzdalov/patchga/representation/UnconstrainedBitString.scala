@@ -18,7 +18,8 @@ trait UnconstrainedBitString(size: Int)
     assert(size == individual.length)
     mutateImpl(individual.clone(), 0, distance)
 
-  override def crossover(mainParent: Individual, auxParent: Individual, distanceToMainFunction: Int => Int): Individual =
+  override def crossover(mainParent: Individual, auxParent: Individual, 
+                         inDifferingBits: Int => Int, inSameBits: Int => Int): Individual =
     assert(size == mainParent.length)
     assert(size == auxParent.length)
     // First, count the number of differing bits between the parents
@@ -26,16 +27,22 @@ trait UnconstrainedBitString(size: Int)
     Loops.loop(0, size)(i => if mainParent(i) != auxParent(i) then countDifferences += 1)
 
     // Second, iterate over the differing bits again and mutate them in the result as appropriately
-    var remaining = distanceToMainFunction(countDifferences)
+    var remainingInDiff = inDifferingBits(countDifferences)
+    var remainingInSame = inSameBits(size - countDifferences)
     val result = mainParent.clone()
-    if remaining > 0 then
-      var scanned = 0
+    if remainingInDiff > 0 || remainingInSame > 0 then
+      var scannedDiff, scannedSame = 0
       Loops.loop(0, size) { i =>
         if mainParent(i) != auxParent(i) then
-          if random.nextInt(countDifferences - scanned) < remaining then
+          if remainingInDiff > 0 && random.nextInt(countDifferences - scannedDiff) < remainingInDiff then
             result(i) ^= true
-            remaining -= 1
-          scanned += 1
+            remainingInDiff -= 1
+          scannedDiff += 1
+        else
+          if remainingInSame > 0 && random.nextInt(size - countDifferences - scannedSame) < remainingInSame then
+            result(i) ^= true
+            remainingInSame -= 1
+          scannedSame += 1
       }
 
     // Note that if distanceToMain is greater than the number of differing bits, we flip all of them
@@ -74,9 +81,8 @@ trait UnconstrainedBitString(size: Int)
     patch.clear()
     Loops.loop(0, size)(i => if source(i) != target(i) then patch.add(i))
 
-  override def subSampleMutablePatchToSize(patch: MutableIntSet, newSize: Int): Unit =
-    while patch.size > newSize do
-      patch.remove(patch.sampleElementInSet(random))
+  override def applyCrossoverRequest(patch: MutablePatch, nRemove: Int, nAdd: Int): Unit =
+    patch.groupAddRemove(nRemove, nAdd, random)
 
   @tailrec
   private def mutateImpl(individual: Individual, current: Int, remaining: Int): Individual =

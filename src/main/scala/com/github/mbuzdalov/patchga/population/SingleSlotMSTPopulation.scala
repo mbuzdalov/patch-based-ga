@@ -7,7 +7,7 @@ import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
 
 trait SingleSlotMSTPopulation extends Population:
-  self: IndividualType & FitnessType & PatchType & NewRandomIndividual & SimpleFitnessFunction & IncrementalFitnessFunction =>
+  self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual & SimpleFitnessFunction & IncrementalFitnessFunction =>
 
   private class Edge private(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, val target: Node, reverseOrNull: Edge | Null):
     def this(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, target: Node) =
@@ -58,7 +58,7 @@ trait SingleSlotMSTPopulation extends Population:
     reconnect(newNode)
     currentNode
 
-  override def crossoverH(mainParent: Node, auxParent: Node, distanceToMainFunction: Int => Int): Node =
+  override def crossoverH(mainParent: Node, auxParent: Node, inDifferingBits: Int => Int, inSameBits: Int => Int): Node =
     assert(mainParent.referenceCount > 0)
     assert(auxParent.referenceCount > 0)
     rewindToGivenNode(null, mainParent)
@@ -66,8 +66,9 @@ trait SingleSlotMSTPopulation extends Population:
     clearMutablePatch(masterPatch)
     collectPatchFromCurrent(null, auxParent)
     val interParentDistance = mutablePatchSize(masterPatch)
-    val desiredDistance = distanceToMainFunction(interParentDistance)
-    subSampleMutablePatchToSize(masterPatch, desiredDistance)
+    val desiredInDifferent = inDifferingBits(interParentDistance)
+    val desiredInSame = inSameBits(maximumPatchSize - interParentDistance) // very brittle!
+    applyCrossoverRequest(masterPatch, desiredInDifferent, desiredInSame)
     val oldToNewPatch = createImmutableVersion(masterPatch)
     val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
     reconnect(newNode)

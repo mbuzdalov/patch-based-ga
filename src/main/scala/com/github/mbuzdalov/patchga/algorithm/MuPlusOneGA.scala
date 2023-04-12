@@ -45,10 +45,8 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
       val next = if random.nextDouble() < pCrossover then
         // Crossover and mutation
         val i1, i2 = random.nextInt(populationSize)
-        val crossoverResult = crossoverH(population(i1), population(i2), d => BinomialDistribution(d, 0.5).sample(random))
-        val mutationResult = mutateH(crossoverResult, mutationOperator.sample(random))
-        discardH(crossoverResult)
-        mutationResult
+        crossoverH(population(i1), population(i2), 
+          d => BinomialDistribution(d, 0.5).sample(random), s => mutationDistributionSource(s).sample(random))
       else
         // Mutation only
         val idx = random.nextInt(populationSize)

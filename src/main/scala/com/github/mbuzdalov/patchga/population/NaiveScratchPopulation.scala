@@ -14,8 +14,9 @@ trait NaiveScratchPopulation extends Population:
       new FitIndividual(newRandomIndividual())
     override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
       new FitIndividual(mutate(handle.individual, distance))
-    override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle, distanceToMainFunction: Int => Int): IndividualHandle =
-      new FitIndividual(crossover(mainParent.individual, auxParent.individual, distanceToMainFunction))
+    override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
+                            inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
+      new FitIndividual(crossover(mainParent.individual, auxParent.individual, inDifferingBits, inSameBits))
 
     override def fitnessH(handle: IndividualHandle): Fitness =
       handle.fitness
