@@ -3,6 +3,7 @@ package com.github.mbuzdalov.patchga.main
 import java.util.Random
 
 import com.github.mbuzdalov.patchga.algorithm.*
+import com.github.mbuzdalov.patchga.config.FitnessType
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.{FixedBudgetTerminator, ThreadLocalRandomProvider}
 import com.github.mbuzdalov.patchga.population.{NaiveScratchPopulation, SingleSlotMSTPopulation}
@@ -19,21 +20,23 @@ object KnapsackTimeMeasurements:
     extends UnconstrainedBitString(weights.length), Knapsack(weights, values, capacity), Knapsack.Incremental,
       SingleSlotMSTPopulation, ThreadLocalRandomProvider, FixedBudgetTerminator(budget), FixedBudgetTerminator.Incremental
 
-  private case class RunResults(avgTime: Double)
+  private case class RunResults(avgTime: Double, avgFitness: Double):
+    def toString(budget: Int): String = s"${avgTime / budget} (average fitness $avgFitness)"
 
   private def run(nRuns: Int)
                  (optimizer: Optimizer)
-                 (problem: => optimizer.RequiredConfig & FixedBudgetTerminator): RunResults =
+                 (problem: => optimizer.RequiredConfig & FixedBudgetTerminator & FitnessType { type Fitness = Knapsack.FitnessObject }): RunResults =
+    var sumFitnessValues: Double = 0.0
     val tBegin = System.nanoTime()
     Loops.loop(0, nRuns) { _ =>
       val instance = problem
       try
         optimizer.optimize(instance)
       catch
-        case e: instance.BudgetReached =>
+        case e: instance.BudgetReached => if e.fitness.isValid then sumFitnessValues += e.fitness.sumValues
     }
     val avgTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns
-    RunResults(avgTime)
+    RunResults(avgTime, sumFitnessValues / nRuns)
 
   def main(args: Array[String]): Unit =
     for w <- 0 to 2 do
@@ -53,11 +56,11 @@ object KnapsackTimeMeasurements:
         val twoPlusOneGA = new MuPlusOneGA(2, 0.5, n => BinomialDistribution(n, 1.0 / n))
         println(n)
         println("RLS:")
-        println(s"  naive: ${runMany(RandomizedLocalSearch)(naive()).avgTime / budget}")
-        println(s"  incre: ${runMany(RandomizedLocalSearch)(incremental()).avgTime / budget}")
+        println(s"  naive: ${runMany(RandomizedLocalSearch)(naive()).toString(budget)}")
+        println(s"  incre: ${runMany(RandomizedLocalSearch)(incremental()).toString(budget)}")
         println("(1+1) EA:")
-        println(s"  naive: ${runMany(OnePlusOneEA.withStandardBitMutation)(naive()).avgTime / budget}")
-        println(s"  incre: ${runMany(OnePlusOneEA.withStandardBitMutation)(incremental()).avgTime / budget}")
+        println(s"  naive: ${runMany(OnePlusOneEA.withStandardBitMutation)(naive()).toString(budget)}")
+        println(s"  incre: ${runMany(OnePlusOneEA.withStandardBitMutation)(incremental()).toString(budget)}")
         println("(2+1) GA:")
-        println(s"  naive: ${runMany(twoPlusOneGA)(naive()).avgTime / budget}")
-        println(s"  incre: ${runMany(twoPlusOneGA)(incremental()).avgTime / budget}")
+        println(s"  naive: ${runMany(twoPlusOneGA)(naive()).toString(budget)}")
+        println(s"  incre: ${runMany(twoPlusOneGA)(incremental()).toString(budget)}")
