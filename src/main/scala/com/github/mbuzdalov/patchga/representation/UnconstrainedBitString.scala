@@ -14,6 +14,8 @@ trait UnconstrainedBitString(size: Int)
 
   override def maximumPatchSize: Int = size
 
+  override def copyOfIndividual(ind: Individual): Individual = ind.clone()
+
   override def mutate(individual: Individual, distance: Int): Individual =
     assert(size == individual.length)
     mutateImpl(individual.clone(), 0, distance)
