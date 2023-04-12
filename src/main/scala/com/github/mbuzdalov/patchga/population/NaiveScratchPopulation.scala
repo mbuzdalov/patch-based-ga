@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.population
 
-import com.github.mbuzdalov.patchga.config._
+import com.github.mbuzdalov.patchga.config.*
 
 trait NaiveScratchPopulation extends Population:
   self: IndividualType & FitnessType & NewRandomIndividual & SimpleMutationOperator & SimpleCrossoverOperator & SimpleFitnessFunction =>

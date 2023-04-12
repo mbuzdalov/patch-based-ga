@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.infra
 
-import com.github.mbuzdalov.patchga.config._
+import com.github.mbuzdalov.patchga.config.*
 
 trait FixedTargetTerminator extends SimpleFitnessFunction:
   self: IndividualType & FitnessType & FitnessComparator =>

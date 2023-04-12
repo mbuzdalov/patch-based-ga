@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.problem
 
-import com.github.mbuzdalov.patchga.config._
+import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
 
 trait OneMax extends FitnessType, SimpleFitnessFunction, FitnessComparator:
