@@ -1,14 +1,15 @@
 package com.github.mbuzdalov.patchga.main
 
-import com.github.mbuzdalov.patchga.algorithm._
+import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.*
 import com.github.mbuzdalov.patchga.population.*
 import com.github.mbuzdalov.patchga.problem.OneMax
 import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
+import com.github.mbuzdalov.patchga.util.Loops
 
-object TimeMeasurements:
+object OneMaxTimeMeasurements:
   private class NaiveOneMax(size: Int)
     extends UnconstrainedBitString(size), OneMax, NaiveScratchPopulation,
       ThreadLocalRandomProvider, FixedTargetTerminator:
@@ -27,14 +28,13 @@ object TimeMeasurements:
                  (problem: => optimizer.RequiredConfig & FixedTargetTerminator): RunResults =
     var sumEvaluations = 0.0
     val tBegin = System.nanoTime()
-    var t = 0
-    while t < nRuns do
+    Loops.loop(0, nRuns) { _ =>
       val instance = problem
       try
         optimizer.optimize(instance)
       catch
         case e: instance.TargetReached => sumEvaluations += e.nEvaluations
-      t += 1
+    }
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
 
   def main(args: Array[String]): Unit =
@@ -42,7 +42,7 @@ object TimeMeasurements:
       println("******************************************")
       println(s"************ Warm-up round $w ************")
       println("******************************************")
-      for n <- Seq(256, 512, 1024, 2048, 4096) do
+      for n <- Seq(32, 64, 128, 256, 512, 1024, 2048, 4096) do
         val runMany = run(40960 / n)
         val twoPlusOneGA = new MuPlusOneGA(2, 0.5, n => BinomialDistribution(n, 1.0 / n))
         println(n)
