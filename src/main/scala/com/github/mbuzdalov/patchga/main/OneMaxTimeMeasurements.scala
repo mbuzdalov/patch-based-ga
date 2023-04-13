@@ -44,7 +44,8 @@ object OneMaxTimeMeasurements:
       println("******************************************")
       for n <- Seq(32, 64, 128, 256, 512, 1024, 2048, 4096) do
         val runMany = run(40960 / n)
-        val twoPlusOneGA = new MuPlusOneGA(2, 0.5, n => BinomialDistribution(n, 1.0 / n))
+        val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
+        val tenPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.4 / n))
         println(n)
         println("RLS:")
         println(s"  naive: ${runMany(RandomizedLocalSearch)(new NaiveOneMax(n)).timeOfEval}")
@@ -55,3 +56,6 @@ object OneMaxTimeMeasurements:
         println("(2+1) GA:")
         println(s"  naive: ${runMany(twoPlusOneGA)(new NaiveOneMax(n)).timeOfEval}")
         println(s"  incre: ${runMany(twoPlusOneGA)(new IncrementalOneMax(n)).timeOfEval}")
+        println("(10+1) GA:")
+        println(s"  naive: ${runMany(tenPlusOneGA)(new NaiveOneMax(n)).timeOfEval}")
+        println(s"  incre: ${runMany(tenPlusOneGA)(new IncrementalOneMax(n)).timeOfEval}")

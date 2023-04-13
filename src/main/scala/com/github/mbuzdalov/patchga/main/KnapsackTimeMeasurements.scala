@@ -53,7 +53,9 @@ object KnapsackTimeMeasurements:
         def incremental() = new IncrementalKnapsack(weights, values, capacity, budget)
         
         val runMany = run(40960 / n)
-        val twoPlusOneGA = new MuPlusOneGA(2, 0.5, n => BinomialDistribution(n, 1.0 / n))
+        val twoPlusOneGA = new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.21 / n))
+        val tenPlusOneGA = new MuPlusOneGA(10, 1.0, n => BinomialDistribution(n, 1.43 / n))
+
         println(n)
         println("RLS:")
         println(s"  naive: ${runMany(RandomizedLocalSearch)(naive()).toString(budget)}")
@@ -64,3 +66,6 @@ object KnapsackTimeMeasurements:
         println("(2+1) GA:")
         println(s"  naive: ${runMany(twoPlusOneGA)(naive()).toString(budget)}")
         println(s"  incre: ${runMany(twoPlusOneGA)(incremental()).toString(budget)}")
+        println("(10+1) GA:")
+        println(s"  naive: ${runMany(tenPlusOneGA)(naive()).toString(budget)}")
+        println(s"  incre: ${runMany(tenPlusOneGA)(incremental()).toString(budget)}")
