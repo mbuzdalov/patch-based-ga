@@ -64,8 +64,9 @@ class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
               (n => new IncrementalOneMax(n))
 
   // constants for (10+1) GA are taken from https://link.springer.com/article/10.1007/s00453-020-00743-1
+  // but they underestimate the runtime for the used problem sizes
 
   "(10+1) GA on OneMax" should "work well with single-slot MST-based population" in
-    simpleTest(n => 1.66 * n * math.log(n))
+    simpleTest(n => 1.75 * n * math.log(n))
               (new MuPlusOneGA(10, 1.0, n => BinomialDistribution(n, 1.43 / n)))
               (n => new IncrementalOneMax(n))
