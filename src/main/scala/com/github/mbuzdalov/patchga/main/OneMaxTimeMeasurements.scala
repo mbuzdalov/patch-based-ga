@@ -21,41 +21,59 @@ object OneMaxTimeMeasurements:
     override def targetFitness: Fitness = size
 
   private case class RunResults(avgEvaluations: Double, avgTime: Double):
-    def timeOfEval: Double = avgTime / avgEvaluations
+    def avgTimePerEval: Double = avgTime / avgEvaluations
 
-  private def run(nRuns: Int)
-                 (optimizer: Optimizer)
+  private def run(optimizer: Optimizer)
                  (problem: => optimizer.RequiredConfig & FixedTargetTerminator): RunResults =
     var sumEvaluations = 0.0
+    var nRuns = 0L
     val tBegin = System.nanoTime()
-    Loops.loop(0, nRuns) { _ =>
+    while System.nanoTime() - tBegin < 1e9 do
       val instance = problem
       try
         optimizer.optimize(instance)
       catch
-        case e: instance.TargetReached => sumEvaluations += e.nEvaluations
-    }
+        case e: instance.TargetReached =>
+          nRuns += 1
+          sumEvaluations += e.nEvaluations
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
 
   def main(args: Array[String]): Unit =
-    for w <- 0 to 2 do
-      println("******************************************")
-      println(s"************ Warm-up round $w ************")
-      println("******************************************")
-      for n <- Seq(32, 64, 128, 256, 512, 1024, 2048, 4096) do
-        val runMany = run(40960 / n)
-        val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
-        val tenPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.4 / n))
-        println(n)
-        println("RLS:")
-        println(s"  naive: ${runMany(RandomizedLocalSearch)(new NaiveOneMax(n)).timeOfEval}")
-        println(s"  incre: ${runMany(RandomizedLocalSearch)(new IncrementalOneMax(n)).timeOfEval}")
-        println("(1+1) EA:")
-        println(s"  naive: ${runMany(OnePlusOneEA.withStandardBitMutation)(new NaiveOneMax(n)).timeOfEval}")
-        println(s"  incre: ${runMany(OnePlusOneEA.withStandardBitMutation)(new IncrementalOneMax(n)).timeOfEval}")
-        println("(2+1) GA:")
-        println(s"  naive: ${runMany(twoPlusOneGA)(new NaiveOneMax(n)).timeOfEval}")
-        println(s"  incre: ${runMany(twoPlusOneGA)(new IncrementalOneMax(n)).timeOfEval}")
-        println("(10+1) GA:")
-        println(s"  naive: ${runMany(tenPlusOneGA)(new NaiveOneMax(n)).timeOfEval}")
-        println(s"  incre: ${runMany(tenPlusOneGA)(new IncrementalOneMax(n)).timeOfEval}")
+    val algo = args(0)
+    val flavour = args(1)
+    val n = args(2).toInt
+
+    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
+    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
+    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, 1.4 / n))
+
+    var sumAvgEvals, sumSqAvgEvals = 0.0
+    val sequence = new Array[Double](10)
+    var index = 0
+
+    println(s"$algo, $flavour, $n:")
+
+    def newProblem() = flavour match
+      case "naive" => new NaiveOneMax(n)
+      case "incre" => new IncrementalOneMax(n)
+
+    while true do
+      val result = algo match
+        case "RLS" => run(RandomizedLocalSearch)(newProblem())
+        case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
+        case "(2+1)" => run(twoPlusOneGA)(newProblem())
+        case "(10+1)" => run(tenPlusOneGA)(newProblem())
+        case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
+      val m = sequence(index % 10)
+      sumAvgEvals -= m
+      sumSqAvgEvals -= m * m
+      val curr = result.avgTimePerEval
+      sequence(index % 10) = curr
+      index += 1
+      sumAvgEvals += curr
+      sumSqAvgEvals += curr * curr
+      if index > 10 then
+        val n = sequence.length
+        println(s"$curr. Over last $n: avg = ${sumAvgEvals / n}, stddev = ${math.sqrt(n / (n - 1) * (sumSqAvgEvals / n - (sumAvgEvals / n) * (sumAvgEvals / n)))}")
+      else
+        println(curr)

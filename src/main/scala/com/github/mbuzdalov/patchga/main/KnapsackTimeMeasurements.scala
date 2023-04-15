@@ -23,49 +23,70 @@ object KnapsackTimeMeasurements:
   private case class RunResults(avgTime: Double, avgFitness: Double):
     def toString(budget: Int): String = s"${avgTime / budget} (average fitness $avgFitness)"
 
-  private def run(nRuns: Int)
-                 (optimizer: Optimizer)
+  private def run(optimizer: Optimizer)
                  (problem: => optimizer.RequiredConfig & FixedBudgetTerminator & FitnessType { type Fitness = Knapsack.FitnessObject }): RunResults =
+
     var sumFitnessValues: Double = 0.0
+    var nRuns = 0L
     val tBegin = System.nanoTime()
-    Loops.loop(0, nRuns) { _ =>
+    while System.nanoTime() - tBegin < 1e9 do
       val instance = problem
       try
         optimizer.optimize(instance)
       catch
-        case e: instance.BudgetReached => if e.fitness.isValid then sumFitnessValues += e.fitness.sumValues
-    }
-    val avgTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns
-    RunResults(avgTime, sumFitnessValues / nRuns)
+        case e: instance.BudgetReached =>
+          nRuns += 1
+          if e.fitness.isValid then sumFitnessValues += e.fitness.sumValues
+    RunResults((System.nanoTime() - tBegin) * 1e-9 / nRuns, sumFitnessValues / nRuns)
 
   def main(args: Array[String]): Unit =
-    for w <- 0 to 2 do
-      println("******************************************")
-      println(s"************ Warm-up round $w ************")
-      println("******************************************")
-      for n <- Seq(32, 64, 128, 256, 512, 1024, 2048, 4096) do
-        val rng = new Random(n * 76324532535L)
-        val weights, values = IArray.fill(n)(10000 + rng.nextInt(10000))
-        val capacity = weights.sum / 2
-        val budget = 25000
+    val algo = args(0)
+    val flavour = args(1)
+    val n = args(2).toInt
+    val budget = args(3).toInt
 
-        def naive() = new NaiveKnapsack(weights, values, capacity, budget)
-        def incremental() = new IncrementalKnapsack(weights, values, capacity, budget)
-        
-        val runMany = run(40960 / n)
-        val twoPlusOneGA = new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.21 / n))
-        val tenPlusOneGA = new MuPlusOneGA(10, 1.0, n => BinomialDistribution(n, 1.43 / n))
+    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
+    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
+    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, 1.4 / n))
 
-        println(n)
-        println("RLS:")
-        println(s"  naive: ${runMany(RandomizedLocalSearch)(naive()).toString(budget)}")
-        println(s"  incre: ${runMany(RandomizedLocalSearch)(incremental()).toString(budget)}")
-        println("(1+1) EA:")
-        println(s"  naive: ${runMany(OnePlusOneEA.withStandardBitMutation)(naive()).toString(budget)}")
-        println(s"  incre: ${runMany(OnePlusOneEA.withStandardBitMutation)(incremental()).toString(budget)}")
-        println("(2+1) GA:")
-        println(s"  naive: ${runMany(twoPlusOneGA)(naive()).toString(budget)}")
-        println(s"  incre: ${runMany(twoPlusOneGA)(incremental()).toString(budget)}")
-        println("(10+1) GA:")
-        println(s"  naive: ${runMany(tenPlusOneGA)(naive()).toString(budget)}")
-        println(s"  incre: ${runMany(tenPlusOneGA)(incremental()).toString(budget)}")
+    var sumAvgEvals, sumSqAvgEvals = 0.0
+    val sequence = new Array[Double](10)
+    var index = 0
+
+    println(s"$algo, $flavour, $n:")
+
+    val rng = new Random(n * 76324532535L)
+    def randomArray() = IArray.fill(n)(10000 + rng.nextInt(10000))
+
+    def naive() =
+      val weights, values = randomArray()
+      new NaiveKnapsack(weights, values, weights.sum / 2, budget)
+
+    def incremental() =
+      val weights, values = randomArray()
+      new IncrementalKnapsack(weights, values, weights.sum / 2, budget)
+
+    def newProblem() = flavour match
+      case "naive" => naive()
+      case "incre" => incremental() 
+
+    while true do
+      val result = algo match
+        case "RLS" => run(RandomizedLocalSearch)(newProblem())
+        case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
+        case "(2+1)" => run(twoPlusOneGA)(newProblem())
+        case "(10+1)" => run(tenPlusOneGA)(newProblem())
+        case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
+      val m = sequence(index % 10)
+      sumAvgEvals -= m
+      sumSqAvgEvals -= m * m
+      val curr = result.avgTime / budget
+      sequence(index % 10) = curr
+      index += 1
+      sumAvgEvals += curr
+      sumSqAvgEvals += curr * curr
+      if index > 10 then
+        val n = sequence.length
+        println(s"$curr. Over last $n: avg = ${sumAvgEvals / n}, stddev = ${math.sqrt(n / (n - 1) * (sumSqAvgEvals / n - (sumAvgEvals / n) * (sumAvgEvals / n)))}")
+      else
+        println(curr)
