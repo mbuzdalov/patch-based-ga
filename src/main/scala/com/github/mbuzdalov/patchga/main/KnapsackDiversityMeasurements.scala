@@ -31,12 +31,12 @@ object KnapsackDiversityMeasurements:
 
     var crossAveragePatchSum = 0.0
     var crossAveragePatchSumSq = 0.0
-    var crossAverageCnt = 0
+    var crossAveragePatchCnt = 0
 
     var crossAverageTimeSum = 0.0
     var crossAverageTimeSumSq = 0.0
-    while System.in.available() == 0 do
-      var sumPatchSizes: Double = 0.0
+    var crossAverageTimeCnt = 0
+    Loops.loop(0, 110) { t =>
       var nRuns = 0L
       val tBegin = System.nanoTime()
       while System.nanoTime() - tBegin < 1e9 do
@@ -46,18 +46,18 @@ object KnapsackDiversityMeasurements:
         catch
           case e: instance.BudgetReached =>
             nRuns += 1
-            if e.fitness.isValid then sumPatchSizes += instance.totalSizeOfPatches
+            if e.fitness.isValid && t >= 10 then
+              crossAveragePatchSum += instance.totalSizeOfPatches
+              crossAveragePatchSumSq += instance.totalSizeOfPatches.toDouble * instance.totalSizeOfPatches
+              crossAveragePatchCnt += 1
 
-      val avgOperationTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns / budget
-      val avgPatchSize = sumPatchSizes / nRuns
-      crossAverageCnt += 1
-      crossAveragePatchSum += avgPatchSize
-      crossAveragePatchSumSq += avgPatchSize * avgPatchSize
-      crossAverageTimeSum += avgOperationTime
-      crossAverageTimeSumSq += avgOperationTime * avgOperationTime
-      val crossAveragePatch = crossAveragePatchSum / crossAverageCnt
-      val crossAverageTime = crossAverageTimeSum / crossAverageCnt
-      println(s"averageOperation: $avgOperationTime, averagePatchSize = $avgPatchSize")
-      println(s"  Cross time: $crossAverageTime +- ${math.sqrt(crossAverageCnt / (crossAverageCnt - 1.0) * (crossAverageTimeSumSq / crossAverageCnt - crossAverageTime * crossAverageTime))}")
-      println(s"  Cross size: $crossAveragePatch +- ${math.sqrt(crossAverageCnt / (crossAverageCnt - 1.0) * (crossAveragePatchSumSq / crossAverageCnt - crossAveragePatch * crossAveragePatch))}")
-
+      if t >= 10 then
+        val avgOperationTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns / budget
+        crossAverageTimeCnt += 1
+        crossAverageTimeSum += avgOperationTime
+        crossAverageTimeSumSq += avgOperationTime * avgOperationTime
+        val crossAveragePatch = crossAveragePatchSum / crossAveragePatchCnt
+        val crossAverageTime = crossAverageTimeSum / crossAverageTimeCnt
+        println(s"Cross time: $crossAverageTime +- ${math.sqrt(crossAverageTimeCnt / (crossAverageTimeCnt - 1.0) * (crossAverageTimeSumSq / crossAverageTimeCnt - crossAverageTime * crossAverageTime))}")
+        println(s"Cross size: $crossAveragePatch +- ${math.sqrt(crossAveragePatchCnt / (crossAveragePatchCnt - 1.0) * (crossAveragePatchSumSq / crossAveragePatchCnt - crossAveragePatch * crossAveragePatch))}")
+    }
