@@ -8,6 +8,7 @@ trait PatchType:
   
   def reversedImmutablePatch(patch: ImmutablePatch): ImmutablePatch
   def applyToIndividual(individual: Individual, patch: ImmutablePatch): Unit
+  def immutablePatchSize(patch: ImmutablePatch): Int
   
   def createMutablePatch(): MutablePatch
   def mutablePatchSize(patch: MutablePatch): Int

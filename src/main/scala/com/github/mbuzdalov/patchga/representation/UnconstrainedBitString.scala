@@ -55,6 +55,8 @@ trait UnconstrainedBitString(size: Int)
 
   override def createImmutableVersion(patch: MutableIntSet): IArray[Int] = patch.toIArray
 
+  override def immutablePatchSize(patch: ImmutablePatch): Int = patch.length
+
   override def reversedImmutablePatch(patch: IArray[Int]): IArray[Int] = patch
 
   override def createMutablePatch(): MutableIntSet = new MutableIntSet(size)

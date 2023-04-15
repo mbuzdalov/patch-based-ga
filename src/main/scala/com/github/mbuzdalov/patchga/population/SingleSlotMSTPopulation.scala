@@ -25,6 +25,8 @@ trait SingleSlotMSTPopulation extends Population:
   private val masterPatch = createMutablePatch()
   private var currentNode: Node = _
 
+  def totalSizeOfPatches: Long = countTotalSizeOfPatches(null, currentNode)
+
   override def fitnessH(handle: IndividualHandle): Fitness = handle.fitness
 
   override def discardH(handle: IndividualHandle): Unit =
@@ -164,3 +166,14 @@ trait SingleSlotMSTPopulation extends Population:
           else
             false
       }
+
+  private def countTotalSizeOfPatches(parent: Node, curr: Node): Long =
+    var sum = 0L
+    val edges = curr.edges
+    Loops.loop(0, edges.size) { i =>
+      val edge = edges(i)
+      if edge.target != parent then
+        sum += immutablePatchSize(edge.patch)
+        sum += countTotalSizeOfPatches(curr, edge.target)
+    }
+    sum
