@@ -57,7 +57,7 @@ object OneMaxTimeMeasurements:
       case "naive" => new NaiveOneMax(n)
       case "incre" => new IncrementalOneMax(n)
 
-    while true do
+    while System.in.available() == 0 do
       val result = algo match
         case "RLS" => run(RandomizedLocalSearch)(newProblem())
         case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
