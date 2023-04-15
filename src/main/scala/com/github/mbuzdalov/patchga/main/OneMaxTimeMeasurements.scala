@@ -73,7 +73,7 @@ object OneMaxTimeMeasurements:
       sumAvgEvals += curr
       sumSqAvgEvals += curr * curr
       if index > 10 then
-        val n = sequence.length
-        println(s"$curr. Over last $n: avg = ${sumAvgEvals / n}, stddev = ${math.sqrt(n / (n - 1) * (sumSqAvgEvals / n - (sumAvgEvals / n) * (sumAvgEvals / n)))}")
+        val l = sequence.length
+        println(s"$curr. Over last $l: ($n,${sumAvgEvals / l})+-(0,${math.sqrt(l / (l - 1.0) * (sumSqAvgEvals / l - (sumAvgEvals / l) * (sumAvgEvals / l)))})")
       else
         println(curr)
