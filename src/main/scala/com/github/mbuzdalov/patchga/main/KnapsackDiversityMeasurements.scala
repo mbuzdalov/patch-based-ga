@@ -31,7 +31,10 @@ object KnapsackDiversityMeasurements:
 
     var crossAveragePatchSum = 0.0
     var crossAveragePatchSumSq = 0.0
-    var crossAveragePatchCnt = 0
+    var crossAverageCnt = 0
+
+    var crossAverageTimeSum = 0.0
+    var crossAverageTimeSumSq = 0.0
     while System.in.available() == 0 do
       var sumPatchSizes: Double = 0.0
       var nRuns = 0L
@@ -47,9 +50,14 @@ object KnapsackDiversityMeasurements:
 
       val avgOperationTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns / budget
       val avgPatchSize = sumPatchSizes / nRuns
-      crossAveragePatchCnt += 1
+      crossAverageCnt += 1
       crossAveragePatchSum += avgPatchSize
       crossAveragePatchSumSq += avgPatchSize * avgPatchSize
-      val crossAveragePatch = crossAveragePatchSum / crossAveragePatchCnt
-      println(s"averageOperation: $avgOperationTime, averagePatchSize = $avgPatchSize, really average = $crossAveragePatch std = ${math.sqrt(crossAveragePatchCnt / (crossAveragePatchCnt - 1.0) * (crossAveragePatchSumSq / crossAveragePatchCnt - crossAveragePatch * crossAveragePatch))}")
+      crossAverageTimeSum += avgOperationTime
+      crossAverageTimeSumSq += avgOperationTime * avgOperationTime
+      val crossAveragePatch = crossAveragePatchSum / crossAverageCnt
+      val crossAverageTime = crossAverageTimeSum / crossAverageCnt
+      println(s"averageOperation: $avgOperationTime, averagePatchSize = $avgPatchSize")
+      println(s"  Cross time: $crossAverageTime +- ${math.sqrt(crossAverageCnt / (crossAverageCnt - 1.0) * (crossAverageTimeSumSq / crossAverageCnt - crossAverageTime * crossAverageTime))}")
+      println(s"  Cross size: $crossAveragePatch +- ${math.sqrt(crossAverageCnt / (crossAverageCnt - 1.0) * (crossAveragePatchSumSq / crossAverageCnt - crossAveragePatch * crossAveragePatch))}")
 
