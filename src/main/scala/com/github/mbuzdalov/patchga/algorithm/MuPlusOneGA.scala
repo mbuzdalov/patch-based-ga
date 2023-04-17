@@ -31,10 +31,11 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
 
       for i <- 1 until populationSize do
         val currFitness = fitnessH(population(i))
-        if compare(smallestFitness, currFitness) > 0 then
+        val comparison = compare(smallestFitness, currFitness)
+        if comparison > 0 then
           smallestFitness = currFitness
           nSmallestIndividuals = 0
-        if compare(smallestFitness, currFitness) == 0 then
+        if comparison == 0 then
           smallestFitnessIndices(nSmallestIndividuals) = i
           nSmallestIndividuals += 1
 
