@@ -5,21 +5,11 @@ import java.util.Random
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.config.FitnessType
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
-import com.github.mbuzdalov.patchga.infra.{FixedBudgetTerminator, ThreadLocalRandomProvider}
-import com.github.mbuzdalov.patchga.population.{NaiveScratchPopulation, SingleSlotMSTPopulation}
-import com.github.mbuzdalov.patchga.problem.Knapsack
-import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
+import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
+import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
 import com.github.mbuzdalov.patchga.util.Loops
 
 object KnapsackTimeMeasurements:
-  private class NaiveKnapsack(weights: IArray[Int], values: IArray[Int], capacity: Int, budget: Int)
-    extends UnconstrainedBitString(weights.length), Knapsack(weights, values, capacity), NaiveScratchPopulation, 
-      ThreadLocalRandomProvider, FixedBudgetTerminator(budget)
-
-  private class IncrementalKnapsack(weights: IArray[Int], values: IArray[Int], capacity: Int, budget: Int)
-    extends UnconstrainedBitString(weights.length), Knapsack(weights, values, capacity), Knapsack.Incremental,
-      SingleSlotMSTPopulation, ThreadLocalRandomProvider, FixedBudgetTerminator(budget), FixedBudgetTerminator.Incremental
-
   private case class RunResults(avgTime: Double, avgFitness: Double):
     def toString(budget: Int): String = s"${avgTime / budget} (average fitness $avgFitness)"
 
@@ -60,11 +50,11 @@ object KnapsackTimeMeasurements:
 
     def naive() =
       val weights, values = randomArray()
-      new NaiveKnapsack(weights, values, weights.sum / 2, budget)
+      Problems.naiveKnapsackFB(weights, values, weights.sum / 2, budget)
 
     def incremental() =
       val weights, values = randomArray()
-      new IncrementalKnapsack(weights, values, weights.sum / 2, budget)
+      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget)
 
     def newProblem() = flavour match
       case "naive" => naive()

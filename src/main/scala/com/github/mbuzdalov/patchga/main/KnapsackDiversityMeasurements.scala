@@ -3,20 +3,12 @@ package com.github.mbuzdalov.patchga.main
 import java.util.Random
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.config.FitnessType
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
-import com.github.mbuzdalov.patchga.infra.{FixedBudgetTerminator, ThreadLocalRandomProvider}
-import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
-import com.github.mbuzdalov.patchga.problem.Knapsack
-import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
+import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
+import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
 
 object KnapsackDiversityMeasurements:
-  private class IncrementalKnapsack(weights: IArray[Int], values: IArray[Int], capacity: Int, budget: Int)
-    extends UnconstrainedBitString(weights.length), Knapsack(weights, values, capacity), Knapsack.Incremental,
-      SingleSlotMSTPopulation, ThreadLocalRandomProvider, FixedBudgetTerminator(budget), FixedBudgetTerminator.Incremental
-
-
   def main(args: Array[String]): Unit =
     val n = args(0).toInt
     val budget = args(1).toInt
@@ -27,7 +19,7 @@ object KnapsackDiversityMeasurements:
     val capacity = weights.sum / 2
 
     val optimizer = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
-    def newKnapsack() = new IncrementalKnapsack(weights, values, capacity, budget)
+    def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget)
 
     var crossAveragePatchSum = 0.0
     var crossAveragePatchSumSq = 0.0

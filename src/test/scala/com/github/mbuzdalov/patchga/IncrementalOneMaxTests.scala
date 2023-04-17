@@ -1,21 +1,14 @@
 package com.github.mbuzdalov.patchga
 
-import com.github.mbuzdalov.patchga.algorithm.{MuPlusOneGA, OnePlusOneEA, Optimizer, RandomizedLocalSearch}
-import com.github.mbuzdalov.patchga.config.{FitnessComparator, FitnessType, IndividualType, SimpleFitnessFunction}
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
-import com.github.mbuzdalov.patchga.infra.{FixedTargetTerminator, ThreadLocalRandomProvider}
-import com.github.mbuzdalov.patchga.population.{NaiveScratchPopulation, SingleSlotMSTPopulation}
-import com.github.mbuzdalov.patchga.problem.OneMax
-import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
-  private class IncrementalOneMax(size: Int)
-    extends UnconstrainedBitString(size), OneMax, OneMax.Incremental, SingleSlotMSTPopulation,
-      ThreadLocalRandomProvider, FixedTargetTerminator.Incremental:
-    override def targetFitness: Fitness = size
+import com.github.mbuzdalov.patchga.algorithm.{MuPlusOneGA, OnePlusOneEA, Optimizer, RandomizedLocalSearch}
+import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
+import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
+import com.github.mbuzdalov.patchga.problem.Problems
 
+class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
   private case class RunResults(avgEvaluations: Double, avgTime: Double)
 
   private def run(optimizer: Optimizer)
@@ -44,24 +37,24 @@ class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
   "RLS on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(n => n * math.log(n))
               (RandomizedLocalSearch)
-              (n => new IncrementalOneMax(n))
+              (n => Problems.incrementalOneMaxFT(n))
 
   "(1+1) EA on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(n => math.E * n * math.log(n))
               (OnePlusOneEA.withStandardBitMutation)
-              (n => new IncrementalOneMax(n))
+              (n => Problems.incrementalOneMaxFT(n))
 
   // constants for (2+1) GA are taken from https://link.springer.com/article/10.1007/s00453-021-00893-w
 
   "(2+1) GA on OneMax" should "work well with single-slot MST-based population using c=1" in
     simpleTest(n => 2.224 * n * math.log(n))
               (new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.0 / n)))
-              (n => new IncrementalOneMax(n))
+              (n => Problems.incrementalOneMaxFT(n))
 
   it should "work well with single-slot MST-based population using c=1.2122" in
     simpleTest(n => 2.18417 * n * math.log(n))
               (new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.2122 / n)))
-              (n => new IncrementalOneMax(n))
+              (n => Problems.incrementalOneMaxFT(n))
 
   // constants for (10+1) GA are taken from https://link.springer.com/article/10.1007/s00453-020-00743-1
   // but they underestimate the runtime for the used problem sizes
@@ -69,4 +62,4 @@ class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
   "(10+1) GA on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(n => 1.75 * n * math.log(n))
               (new MuPlusOneGA(10, 1.0, n => BinomialDistribution(n, 1.43 / n)))
-              (n => new IncrementalOneMax(n))
+              (n => Problems.incrementalOneMaxFT(n))

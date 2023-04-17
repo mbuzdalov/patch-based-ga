@@ -1,25 +1,12 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
-import com.github.mbuzdalov.patchga.infra.*
-import com.github.mbuzdalov.patchga.population.*
-import com.github.mbuzdalov.patchga.problem.OneMax
-import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
+import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
+import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
 
 object OneMaxTimeMeasurements:
-  private class NaiveOneMax(size: Int)
-    extends UnconstrainedBitString(size), OneMax, NaiveScratchPopulation,
-      ThreadLocalRandomProvider, FixedTargetTerminator:
-    override def targetFitness: Fitness = size
-
-  private class IncrementalOneMax(size: Int)
-    extends UnconstrainedBitString(size), OneMax, OneMax.Incremental, SingleSlotMSTPopulation,
-      ThreadLocalRandomProvider, FixedTargetTerminator.Incremental:
-    override def targetFitness: Fitness = size
-
   private case class RunResults(avgEvaluations: Double, avgTime: Double):
     def avgTimePerEval: Double = avgTime / avgEvaluations
 
@@ -54,8 +41,8 @@ object OneMaxTimeMeasurements:
     println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
-      case "naive" => new NaiveOneMax(n)
-      case "incre" => new IncrementalOneMax(n)
+      case "naive" => Problems.naiveOneMaxFT(n)
+      case "incre" => Problems.incrementalOneMaxFT(n)
 
     while System.in.available() == 0 do
       val result = algo match
