@@ -14,7 +14,6 @@ object KnapsackTimeMeasurements:
 
   private def run(optimizer: Optimizer)
                  (problem: => optimizer.RequiredConfig & FixedBudgetTerminator & FitnessType { type Fitness = Knapsack.FitnessObject }): RunResults =
-
     var sumFitnessValues: Double = 0.0
     var nRuns = 0L
     val tBegin = System.nanoTime()
