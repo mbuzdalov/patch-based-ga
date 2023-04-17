@@ -24,8 +24,9 @@ trait SingleSlotMSTPopulation extends Population:
   private var masterIndividual = newRandomIndividual()
   private val masterPatch = createMutablePatch()
   private var currentNode: Node = _
+  private var sumPatchSizes: Long = 0
 
-  def totalSizeOfPatches: Long = countTotalSizeOfPatches(null, currentNode)
+  def totalSizeOfPatches: Long = sumPatchSizes
 
   override def fitnessH(handle: IndividualHandle): Fitness = handle.fitness
 
@@ -86,11 +87,13 @@ trait SingleSlotMSTPopulation extends Population:
     newNode.edges.addOne(newToBestEdge)
     currentNode.edges.addOne(newToBestEdge.reverse)
     currentNode = newNode
+    sumPatchSizes += shortestDistance
 
   @tailrec
   private def disconnectRecursively(handle: IndividualHandle): Unit =
     if handle.edges.size == 1 then
       val theEdge = handle.edges(0)
+      sumPatchSizes -= immutablePatchSize(theEdge.patch)
       handle.edges.clear()
       val otherNode = theEdge.target
       if handle == currentNode then
@@ -166,14 +169,3 @@ trait SingleSlotMSTPopulation extends Population:
           else
             false
       }
-
-  private def countTotalSizeOfPatches(parent: Node, curr: Node): Long =
-    var sum = 0L
-    val edges = curr.edges
-    Loops.loop(0, edges.size) { i =>
-      val edge = edges(i)
-      if edge.target != parent then
-        sum += immutablePatchSize(edge.patch)
-        sum += countTotalSizeOfPatches(curr, edge.target)
-    }
-    sum
