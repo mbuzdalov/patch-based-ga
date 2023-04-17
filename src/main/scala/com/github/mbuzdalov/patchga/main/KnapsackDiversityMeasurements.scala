@@ -28,13 +28,10 @@ object KnapsackDiversityMeasurements:
       val tBegin = System.nanoTime()
       while System.nanoTime() - tBegin < 1e9 do
         val instance = newKnapsack()
-        try
-          optimizer.optimize(instance)
-        catch
-          case e: instance.BudgetReached =>
-            nRuns += 1
-            if e.fitness.isValid && t >= 10 then
-              patchSize.record(instance.totalSizeOfPatches)
+        FixedBudgetTerminator.runUntilBudgetReached(optimizer)(instance)
+        nRuns += 1
+        if t >= 10 then
+          patchSize.record(instance.totalSizeOfPatches)
 
       if t >= 10 then
         val avgOperationTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns / budget

@@ -19,10 +19,7 @@ class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
     var t = 0
     while t < nRuns do
       val instance = problem
-      try
-        optimizer.optimize(instance)
-      catch
-        case e: instance.TargetReached => sumEvaluations += e.nEvaluations
+      sumEvaluations += FixedTargetTerminator.runUntilTargetReached(optimizer)(instance).nEvaluations
       t += 1
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
 

@@ -1,5 +1,6 @@
 package com.github.mbuzdalov.patchga.infra
 
+import com.github.mbuzdalov.patchga.algorithm.Optimizer
 import com.github.mbuzdalov.patchga.config.{FitnessComparator, FitnessType, IncrementalFitnessFunction, IndividualType, PatchType, SimpleFitnessFunction}
 
 trait FixedBudgetTerminator(val maxEvaluations: Long) extends SimpleFitnessFunction:
@@ -33,3 +34,10 @@ object FixedBudgetTerminator:
       val result = super.computeFitnessFunctionIncrementally(individual, oldFitness, patch)
       validate(individual, result)
       result
+
+  def runUntilBudgetReached(optimizer: Optimizer)(config: optimizer.RequiredConfig & FixedBudgetTerminator): config.BudgetReached =
+    try
+      optimizer.optimize(config)
+    catch
+      case e: config.BudgetReached => e  
+      

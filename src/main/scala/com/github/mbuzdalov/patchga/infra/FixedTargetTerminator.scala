@@ -1,5 +1,6 @@
 package com.github.mbuzdalov.patchga.infra
 
+import com.github.mbuzdalov.patchga.algorithm.Optimizer
 import com.github.mbuzdalov.patchga.config.*
 
 trait FixedTargetTerminator extends SimpleFitnessFunction:
@@ -27,3 +28,9 @@ object FixedTargetTerminator:
       val result = super.computeFitnessFunctionIncrementally(individual, oldFitness, patch)
       validateFitness(individual, result)
       result
+
+  def runUntilTargetReached(optimizer: Optimizer)(config: optimizer.RequiredConfig & FixedTargetTerminator): config.TargetReached =
+    try
+      optimizer.optimize(config)
+    catch
+      case e: config.TargetReached => e

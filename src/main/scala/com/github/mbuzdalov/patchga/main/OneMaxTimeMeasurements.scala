@@ -17,12 +17,9 @@ object OneMaxTimeMeasurements:
     val tBegin = System.nanoTime()
     while System.nanoTime() - tBegin < 1e9 do
       val instance = problem
-      try
-        optimizer.optimize(instance)
-      catch
-        case e: instance.TargetReached =>
-          nRuns += 1
-          sumEvaluations += e.nEvaluations
+      val result = FixedTargetTerminator.runUntilTargetReached(optimizer)(instance)
+      nRuns += 1
+      sumEvaluations += result.nEvaluations
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
 
   def main(args: Array[String]): Unit =

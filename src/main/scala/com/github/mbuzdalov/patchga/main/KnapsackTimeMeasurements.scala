@@ -20,12 +20,9 @@ object KnapsackTimeMeasurements:
     val tBegin = System.nanoTime()
     while System.nanoTime() - tBegin < 1e9 do
       val instance = problem
-      try
-        optimizer.optimize(instance)
-      catch
-        case e: instance.BudgetReached =>
-          nRuns += 1
-          if e.fitness.isValid then sumFitnessValues += e.fitness.sumValues
+      val result = FixedBudgetTerminator.runUntilBudgetReached(optimizer)(instance)
+      nRuns += 1
+      if result.fitness.isValid then sumFitnessValues += result.fitness.sumValues
     RunResults((System.nanoTime() - tBegin) * 1e-9 / nRuns, sumFitnessValues / nRuns)
 
   def main(args: Array[String]): Unit =
