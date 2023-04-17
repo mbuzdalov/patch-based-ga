@@ -6,7 +6,7 @@ import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
-import com.github.mbuzdalov.patchga.util.Loops
+import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
 object KnapsackDiversityMeasurements:
   def main(args: Array[String]): Unit =
@@ -21,13 +21,8 @@ object KnapsackDiversityMeasurements:
     val optimizer = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
     def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget)
 
-    var crossAveragePatchSum = 0.0
-    var crossAveragePatchSumSq = 0.0
-    var crossAveragePatchCnt = 0
+    val patchSize, operationTime = new MeanAndStandardDeviation()
 
-    var crossAverageTimeSum = 0.0
-    var crossAverageTimeSumSq = 0.0
-    var crossAverageTimeCnt = 0
     Loops.loop(0, 110) { t =>
       var nRuns = 0L
       val tBegin = System.nanoTime()
@@ -39,17 +34,11 @@ object KnapsackDiversityMeasurements:
           case e: instance.BudgetReached =>
             nRuns += 1
             if e.fitness.isValid && t >= 10 then
-              crossAveragePatchSum += instance.totalSizeOfPatches
-              crossAveragePatchSumSq += instance.totalSizeOfPatches.toDouble * instance.totalSizeOfPatches
-              crossAveragePatchCnt += 1
+              patchSize.record(instance.totalSizeOfPatches)
 
       if t >= 10 then
         val avgOperationTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns / budget
-        crossAverageTimeCnt += 1
-        crossAverageTimeSum += avgOperationTime
-        crossAverageTimeSumSq += avgOperationTime * avgOperationTime
-        val crossAveragePatch = crossAveragePatchSum / crossAveragePatchCnt
-        val crossAverageTime = crossAverageTimeSum / crossAverageTimeCnt
-        println(s"Cross time: $crossAverageTime +- ${math.sqrt(crossAverageTimeCnt / (crossAverageTimeCnt - 1.0) * (crossAverageTimeSumSq / crossAverageTimeCnt - crossAverageTime * crossAverageTime))}")
-        println(s"Cross size: $crossAveragePatch +- ${math.sqrt(crossAveragePatchCnt / (crossAveragePatchCnt - 1.0) * (crossAveragePatchSumSq / crossAveragePatchCnt - crossAveragePatch * crossAveragePatch))}")
+        operationTime.record(avgOperationTime)
+        println(s"Cross time: ${operationTime.mean} +- ${operationTime.stdDev}")
+        println(s"Cross size: ${patchSize.mean} +- ${patchSize.stdDev}")
     }
