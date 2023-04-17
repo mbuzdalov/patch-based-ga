@@ -35,7 +35,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
         if comparison > 0 then
           smallestFitness = currFitness
           nSmallestIndividuals = 0
-        if comparison == 0 then
+        if comparison >= 0 then
           smallestFitnessIndices(nSmallestIndividuals) = i
           nSmallestIndividuals += 1
 
