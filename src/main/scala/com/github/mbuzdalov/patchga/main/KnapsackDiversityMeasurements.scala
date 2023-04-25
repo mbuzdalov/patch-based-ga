@@ -31,7 +31,7 @@ object KnapsackDiversityMeasurements:
         FixedBudgetTerminator.runUntilBudgetReached(optimizer)(instance)
         nRuns += 1
         if t >= 10 then
-          patchSize.record(instance.totalSizeOfPatches)
+          patchSize.record(instance.totalSizeOfPatches.toDouble)
 
       if t >= 10 then
         val avgOperationTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns / budget
