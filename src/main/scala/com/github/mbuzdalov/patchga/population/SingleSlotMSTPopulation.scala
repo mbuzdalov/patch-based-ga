@@ -18,6 +18,7 @@ trait SingleSlotMSTPopulation extends Population:
   class Node(val fitness: Fitness):
     private[SingleSlotMSTPopulation] var referenceCount = 1
     private[SingleSlotMSTPopulation] val edges = new ArrayBuffer[Edge](2)
+    private[SingleSlotMSTPopulation] var nextEdgeInPath = -1
 
   override type IndividualHandle = Node
 
@@ -51,8 +52,8 @@ trait SingleSlotMSTPopulation extends Population:
 
   override def mutateH(handle: Node, distance: Int): Node =
     assert(handle.referenceCount > 0)
-    rewindToGivenNode(null, handle)
-    currentNode = handle
+    buildPathToNode(null, currentNode, handle)
+    rewindMasterIndividualByPath()
     // This is the reverse patch: that is, from the newly generated node to currentNode
     initializeMutablePatchFromDistance(masterPatch, distance)
     val newToOldPatch = createImmutableVersion(masterPatch)
@@ -64,10 +65,11 @@ trait SingleSlotMSTPopulation extends Population:
   override def crossoverH(mainParent: Node, auxParent: Node, inDifferingBits: Int => Int, inSameBits: Int => Int): Node =
     assert(mainParent.referenceCount > 0)
     assert(auxParent.referenceCount > 0)
-    rewindToGivenNode(null, mainParent)
-    currentNode = mainParent
+    buildPathToNode(null, currentNode, mainParent)
+    rewindMasterIndividualByPath()
+    buildPathToNode(null, mainParent, auxParent)
     clearMutablePatch(masterPatch)
-    collectPatchFromCurrent(null, auxParent)
+    fillMasterPatchByPath(mainParent)
     val interParentDistance = mutablePatchSize(masterPatch)
     val desiredInDifferent = inDifferingBits(interParentDistance)
     val desiredInSame = inSameBits(maximumPatchSize - interParentDistance) // very brittle!
@@ -78,8 +80,9 @@ trait SingleSlotMSTPopulation extends Population:
     currentNode
 
   private def reconnect(newNode: Node): Unit =
-    val shortestDistance = computeShortestDistance(null, currentNode)
-    rewindCurrentNodeToDistance(null, currentNode, shortestDistance)
+    val shortestDistance = buildPathToShortestDistance(null, currentNode)
+    fillMasterPatchByPath(currentNode)
+    rewindMasterIndividualByPath()
     assert(mutablePatchSize(masterPatch) == shortestDistance)
     val newToBestPatch = createImmutableVersion(masterPatch)
     val bestToNewPatch = reversedImmutablePatch(newToBestPatch)
@@ -105,67 +108,44 @@ trait SingleSlotMSTPopulation extends Population:
       if otherNode.referenceCount == 0 then
         disconnectRecursively(otherNode)
 
-  private def computeShortestDistance(parentNode: Node, currNode: Node): Int =
-    val edges = currNode.edges
-    var result = if currNode.referenceCount > 0 then mutablePatchSize(masterPatch) else Int.MaxValue
+  private def buildPathToShortestDistance(parent: Node, curr: Node): Int =
+    var currentDistance = if curr.referenceCount > 0 then mutablePatchSize(masterPatch) else Int.MaxValue
+    curr.nextEdgeInPath = -1
+    val edges = curr.edges
     Loops.loop(0, edges.size) { i =>
       val edge = edges(i)
-      if edge.target != parentNode then
-        addToMutablePatch(masterPatch, edge.patch)
-        result = math.min(result, computeShortestDistance(currNode, edge.target))
-        addToMutablePatch(masterPatch, edge.reverse.patch)
+      if currentDistance > 0 && edge.target != parent then // for non-revisiting things, currentDistance > 1
+        val result = buildPathToShortestDistance(curr, edge.target)
+        if currentDistance > result then
+          currentDistance = result
+          curr.nextEdgeInPath = i
     }
-    result
+    currentDistance
 
-  private def rewindCurrentNodeToDistance(parentNode: Node, currNode: Node, distance: Int): Boolean =
-    if currNode.referenceCount > 0 && mutablePatchSize(masterPatch) == distance then
-      currentNode = currNode
+  private def buildPathToNode(parent: Node, curr: Node, target: Node): Boolean =
+    if curr == target then
+      curr.nextEdgeInPath = -1
       true
     else
-      val edges = currNode.edges
+      val edges = curr.edges
       Loops.exists(0, edges.size) { i =>
         val edge = edges(i)
-        if edge.target == parentNode then
-          false
+        if edge.target != parent && buildPathToNode(curr, edge.target, target) then
+          curr.nextEdgeInPath = i
+          true
         else
-          addToMutablePatch(masterPatch, edge.patch)
-          if rewindCurrentNodeToDistance(currNode, edge.target, distance) then
-            true
-          else
-            addToMutablePatch(masterPatch, edge.reverse.patch)
-            false
+          false
       }
 
-  private def rewindToGivenNode(parentNode: Node, currNode: Node): Boolean =
-    if currNode == currentNode then
-      true
-    else
-      val edges = currNode.edges
-      Loops.exists(0, edges.size) { i =>
-        val edge = edges(i)
-        if edge.target == parentNode then
-          false
-        else
-          if rewindToGivenNode(currNode, edge.target) then
-            applyToIndividual(masterIndividual, edge.reverse.patch)
-            true
-          else
-            false
-      }
+  @tailrec
+  private def fillMasterPatchByPath(node: Node): Unit =
+    if node.nextEdgeInPath >= 0 then
+      val theEdge = node.edges(node.nextEdgeInPath)
+      addToMutablePatch(masterPatch, theEdge.patch)
+      fillMasterPatchByPath(theEdge.target)
 
-  private def collectPatchFromCurrent(parentNode: Node, currNode: Node): Boolean =
-    if currNode == currentNode then
-      true
-    else
-      val edges = currNode.edges
-      Loops.exists(0, edges.size) { i =>
-        val edge = edges(i)
-        if edge.target == parentNode then
-          false
-        else
-          if collectPatchFromCurrent(currNode, edge.target) then
-            addToMutablePatch(masterPatch, edge.patch)
-            true
-          else
-            false
-      }
+  private def rewindMasterIndividualByPath(): Unit =
+    while currentNode.nextEdgeInPath >= 0 do
+      val theEdge = currentNode.edges(currentNode.nextEdgeInPath)
+      applyToIndividual(masterIndividual, theEdge.patch)
+      currentNode = theEdge.target
