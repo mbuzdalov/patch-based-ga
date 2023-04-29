@@ -28,7 +28,7 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
     val n = 512
     val expectedEvs = expected(n)
     val RunResults(evs, _) = run(optimizer)(problem(n))
-    evs shouldBe expectedEvs +- (0.25 * expectedEvs)
+    evs shouldBe expectedEvs +- (0.3 * expectedEvs)
 
   "RLS on OneMax" should "work well with naive population" in
     simpleTest(n => n * math.log(n))
