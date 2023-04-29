@@ -16,6 +16,7 @@ trait PatchType:
   def applyCrossoverRequest(patch: MutablePatch, nRemove: Int, nAdd: Int): Unit
   def initializeMutablePatchFromDistance(patch: MutablePatch, distance: Int): Unit
   def initializeMutablePatchFromTwoIndividuals(patch: MutablePatch, source: Individual, target: Individual): Unit
-  def addToMutablePatch(patch: MutablePatch, toAdd: ImmutablePatch): Unit
+  def appendToMutablePatch(patch: MutablePatch, toAppend: ImmutablePatch): Unit
+  def prependToMutablePatch(patch: MutablePatch, toPrepend: ImmutablePatch): Unit
   def createImmutableVersion(patch: MutablePatch): ImmutablePatch
   

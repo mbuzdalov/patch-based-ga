@@ -61,15 +61,18 @@ trait UnconstrainedBitString(size: Int)
 
   override def createMutablePatch(): MutableIntSet = new MutableIntSet(size)
 
-  override def addToMutablePatch(patch: MutableIntSet, toAdd: IArray[Int]): Unit =
-    Loops.loop(0, toAdd.length) { i =>
-      val idx = toAdd(i)
+  override def appendToMutablePatch(patch: MutableIntSet, toAppend: IArray[Int]): Unit =
+    Loops.loop(0, toAppend.length) { i =>
+      val idx = toAppend(i)
       if patch.contains(idx) then
         patch.remove(idx)
       else
         patch.add(idx)
     }
 
+  override def prependToMutablePatch(patch: MutableIntSet, toPrepend: IArray[Int]): Unit =
+    appendToMutablePatch(patch, toPrepend)
+  
   override def clearMutablePatch(patch: MutableIntSet): Unit = patch.clear()
 
   override def mutablePatchSize(patch: MutableIntSet): Int = patch.size

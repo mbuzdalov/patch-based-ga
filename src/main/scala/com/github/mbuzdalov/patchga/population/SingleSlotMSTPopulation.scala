@@ -7,7 +7,7 @@ import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
 
 trait SingleSlotMSTPopulation extends Population:
-  self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual & SimpleFitnessFunction & IncrementalFitnessFunction =>
+  self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual & SimpleFitnessFunction & IncrementalFitnessFunction & RandomProvider =>
 
   private class Edge private(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, val target: Node, reverseOrNull: Edge | Null):
     def this(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, target: Node) =
@@ -25,7 +25,7 @@ trait SingleSlotMSTPopulation extends Population:
 
   override type IndividualHandle = Node
 
-  private var masterIndividual = newRandomIndividual()
+  private val masterIndividual = newRandomIndividual()
   private val masterPatch = createMutablePatch()
   private var currentNode: Node = _
   private var sumPatchSizes: Long = 0
@@ -52,27 +52,22 @@ trait SingleSlotMSTPopulation extends Population:
     if currentNode == null then
       // This happens only when we are requested for the first time
       currentNode = nextNewNode(computeFitness(masterIndividual))
+      currentNode
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow
-      val tempIndividual = newRandomIndividual()
-      val newNode = nextNewNode(computeFitness(tempIndividual))
-      initializeMutablePatchFromTwoIndividuals(masterPatch, tempIndividual, masterIndividual)
-      masterIndividual = tempIndividual
-      reconnect(newNode)
+      // We basically simulate mutation from the current node.
+      // Current impl of binomial distribution is somewhat too slow for Bin(n, 0.5), so we do the naive way.
+      var distance = 0
+      Loops.loop(0, maximumPatchSize)(_ => if random.nextBoolean() then distance += 1)
+      mutateH(currentNode, distance)
     end if
-    currentNode
 
   override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
     assert(handle.referenceCount > 0)
     buildPathToNode(null, currentNode, handle)
     rewindMasterIndividualByPath()
-    // This is the reverse patch: that is, from the newly generated node to currentNode
     initializeMutablePatchFromDistance(masterPatch, distance)
-    val newToOldPatch = createImmutableVersion(masterPatch)
-    val oldToNewPatch = reversedImmutablePatch(newToOldPatch)
-    val newNode = nextNewNode(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
-    reconnect(newNode)
-    currentNode
+    newNodeFromPatch()
 
   override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
                           inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
@@ -82,28 +77,30 @@ trait SingleSlotMSTPopulation extends Population:
     rewindMasterIndividualByPath()
     buildPathToNode(null, mainParent, auxParent)
     clearMutablePatch(masterPatch)
-    fillMasterPatchByPath(mainParent)
+    appendForwardPathToMasterPatch(mainParent)
     val interParentDistance = mutablePatchSize(masterPatch)
     val desiredInDifferent = inDifferingBits(interParentDistance)
     val desiredInSame = inSameBits(maximumPatchSize - interParentDistance) // very brittle!
     applyCrossoverRequest(masterPatch, desiredInDifferent, desiredInSame)
-    val oldToNewPatch = createImmutableVersion(masterPatch)
-    val newNode = nextNewNode(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
-    reconnect(newNode)
-    currentNode
+    newNodeFromPatch()
 
-  private def reconnect(newNode: Node): Unit =
-    val shortestDistance = buildPathToShortestDistance(null, currentNode)
-    fillMasterPatchByPath(currentNode)
-    rewindMasterIndividualByPath()
-    assert(mutablePatchSize(masterPatch) == shortestDistance)
-    val newToBestPatch = createImmutableVersion(masterPatch)
-    val bestToNewPatch = reversedImmutablePatch(newToBestPatch)
-    val newToBestEdge = Edge(newNode, newToBestPatch, bestToNewPatch, currentNode)
-    newNode.edges.addOne(newToBestEdge)
-    currentNode.edges.addOne(newToBestEdge.reverse)
-    currentNode = newNode
+  private def newNodeFromPatch(): IndividualHandle =
+    // there is currentNode, and masterPatch points _from_ it _to_ the new node
+    val shortestDistance = buildReversePathToShortestDistance(null, currentNode)
+    // the path from currentNode now goes backwards to the node where we need to move
+    rewindMastersByBackwardPath()
+    // now currentNode is our new immediate parent, and masterPatch points exactly to the new node to create
+    val bestToNewPatch = createImmutableVersion(masterPatch)
+    val newToBestPatch = reversedImmutablePatch(bestToNewPatch)
+    val newNode = nextNewNode(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, bestToNewPatch))
+    clearMutablePatch(masterPatch)
+    // now masterIndividual matches newNode
+    val bestToNewEdge = Edge(currentNode, bestToNewPatch, newToBestPatch, newNode)
+    currentNode.edges.addOne(bestToNewEdge)
+    newNode.edges.addOne(bestToNewEdge.reverse)
     sumPatchSizes += shortestDistance
+    currentNode = newNode
+    currentNode
 
   @tailrec
   private def disconnectRecursively(handle: IndividualHandle): Unit =
@@ -125,7 +122,7 @@ trait SingleSlotMSTPopulation extends Population:
     listeners.foreach(_.accept(currentNode, curr, distance))
     distance
 
-  private def buildPathToShortestDistance(parent: Node, curr: Node): Int =
+  private def buildReversePathToShortestDistance(parent: Node, curr: Node): Int =
     var currentDistance = if curr.referenceCount > 0 then
       notifyListenersReturnDistance(curr, mutablePatchSize(masterPatch))
     else Int.MaxValue
@@ -134,7 +131,9 @@ trait SingleSlotMSTPopulation extends Population:
     Loops.loop(0, edges.size) { i =>
       val edge = edges(i)
       if edge.target != parent then // could shortcut if currentDistance is small, but listeners will starve
-        val result = buildPathToShortestDistance(curr, edge.target)
+        prependToMutablePatch(masterPatch, edge.reverse.patch)
+        val result = buildReversePathToShortestDistance(curr, edge.target)
+        prependToMutablePatch(masterPatch, edge.patch)
         if currentDistance > result then
           currentDistance = result
           curr.nextEdgeInPath = i
@@ -157,11 +156,18 @@ trait SingleSlotMSTPopulation extends Population:
       }
 
   @tailrec
-  private def fillMasterPatchByPath(node: Node): Unit =
+  private def appendForwardPathToMasterPatch(node: Node): Unit =
     if node.nextEdgeInPath >= 0 then
       val theEdge = node.edges(node.nextEdgeInPath)
-      addToMutablePatch(masterPatch, theEdge.patch)
-      fillMasterPatchByPath(theEdge.target)
+      appendToMutablePatch(masterPatch, theEdge.patch)
+      appendForwardPathToMasterPatch(theEdge.target)
+
+  private def rewindMastersByBackwardPath(): Unit =
+    while currentNode.nextEdgeInPath >= 0 do
+      val theEdge = currentNode.edges(currentNode.nextEdgeInPath)
+      prependToMutablePatch(masterPatch, theEdge.reverse.patch)
+      applyToIndividual(masterIndividual, theEdge.reverse.patch)
+      currentNode = theEdge.target
 
   private def rewindMasterIndividualByPath(): Unit =
     while currentNode.nextEdgeInPath >= 0 do
