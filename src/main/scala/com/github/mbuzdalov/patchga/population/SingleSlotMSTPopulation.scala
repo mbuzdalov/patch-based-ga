@@ -15,10 +15,13 @@ trait SingleSlotMSTPopulation extends Population:
     def patch: ImmutablePatch = fwdPatch
     val reverse: Edge = if reverseOrNull != null then reverseOrNull else Edge(target, bwdPatch, fwdPatch, source, this)
 
-  class Node(val fitness: Fitness):
+  class Node(val fitness: Fitness, val sequentialIndex: Long):
     private[SingleSlotMSTPopulation] var referenceCount = 1
     private[SingleSlotMSTPopulation] val edges = new ArrayBuffer[Edge](2)
     private[SingleSlotMSTPopulation] var nextEdgeInPath = -1
+
+  trait NodePairListener:
+    def accept(n1: Node, n2: Node, distance: Int): Unit
 
   override type IndividualHandle = Node
 
@@ -26,6 +29,15 @@ trait SingleSlotMSTPopulation extends Population:
   private val masterPatch = createMutablePatch()
   private var currentNode: Node = _
   private var sumPatchSizes: Long = 0
+  private var numberOfNodesGenerated: Long = 0
+  private val listeners = new ArrayBuffer[NodePairListener]()
+
+  private def nextNewNode(fitness: Fitness): Node =
+    val result = Node(fitness, numberOfNodesGenerated)
+    numberOfNodesGenerated += 1
+    result
+
+  def addNodePairListener(listener: NodePairListener): Unit = listeners.addOne(listener)
 
   def totalSizeOfPatches: Long = sumPatchSizes
 
@@ -36,21 +48,21 @@ trait SingleSlotMSTPopulation extends Population:
     if handle.referenceCount == 0 then
       disconnectRecursively(handle)
 
-  override def newRandomIndividualH(): Node =
+  override def newRandomIndividualH(): IndividualHandle =
     if currentNode == null then
       // This happens only when we are requested for the first time
-      currentNode = Node(computeFitness(masterIndividual))
+      currentNode = nextNewNode(computeFitness(masterIndividual))
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow
       val tempIndividual = newRandomIndividual()
-      val newNode = Node(computeFitness(tempIndividual))
+      val newNode = nextNewNode(computeFitness(tempIndividual))
       initializeMutablePatchFromTwoIndividuals(masterPatch, tempIndividual, masterIndividual)
       masterIndividual = tempIndividual
       reconnect(newNode)
     end if
     currentNode
 
-  override def mutateH(handle: Node, distance: Int): Node =
+  override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
     assert(handle.referenceCount > 0)
     buildPathToNode(null, currentNode, handle)
     rewindMasterIndividualByPath()
@@ -58,11 +70,12 @@ trait SingleSlotMSTPopulation extends Population:
     initializeMutablePatchFromDistance(masterPatch, distance)
     val newToOldPatch = createImmutableVersion(masterPatch)
     val oldToNewPatch = reversedImmutablePatch(newToOldPatch)
-    val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
+    val newNode = nextNewNode(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
     reconnect(newNode)
     currentNode
 
-  override def crossoverH(mainParent: Node, auxParent: Node, inDifferingBits: Int => Int, inSameBits: Int => Int): Node =
+  override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
+                          inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
     assert(mainParent.referenceCount > 0)
     assert(auxParent.referenceCount > 0)
     buildPathToNode(null, currentNode, mainParent)
@@ -75,7 +88,7 @@ trait SingleSlotMSTPopulation extends Population:
     val desiredInSame = inSameBits(maximumPatchSize - interParentDistance) // very brittle!
     applyCrossoverRequest(masterPatch, desiredInDifferent, desiredInSame)
     val oldToNewPatch = createImmutableVersion(masterPatch)
-    val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
+    val newNode = nextNewNode(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
     reconnect(newNode)
     currentNode
 
@@ -108,13 +121,19 @@ trait SingleSlotMSTPopulation extends Population:
       if otherNode.referenceCount == 0 then
         disconnectRecursively(otherNode)
 
+  private def notifyListenersReturnDistance(curr: Node, distance: Int): Int =
+    listeners.foreach(_.accept(currentNode, curr, distance))
+    distance
+
   private def buildPathToShortestDistance(parent: Node, curr: Node): Int =
-    var currentDistance = if curr.referenceCount > 0 then mutablePatchSize(masterPatch) else Int.MaxValue
+    var currentDistance = if curr.referenceCount > 0 then
+      notifyListenersReturnDistance(curr, mutablePatchSize(masterPatch))
+    else Int.MaxValue
     curr.nextEdgeInPath = -1
     val edges = curr.edges
     Loops.loop(0, edges.size) { i =>
       val edge = edges(i)
-      if currentDistance > 0 && edge.target != parent then // for non-revisiting things, currentDistance > 1
+      if edge.target != parent then // could shortcut if currentDistance is small, but listeners will starve
         val result = buildPathToShortestDistance(curr, edge.target)
         if currentDistance > result then
           currentDistance = result
