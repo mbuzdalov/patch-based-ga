@@ -6,8 +6,9 @@ import scala.collection.mutable.ArrayBuffer
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
 
-trait SingleSlotMSTPopulation extends Population:
-  self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual & SimpleFitnessFunction & IncrementalFitnessFunction & RandomProvider =>
+trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
+  self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual 
+    & SimpleFitnessFunction & IncrementalFitnessFunction & RandomProvider =>
 
   private class Edge private(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, val target: Node, reverseOrNull: Edge | Null):
     def this(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, target: Node) =
@@ -15,13 +16,10 @@ trait SingleSlotMSTPopulation extends Population:
     def patch: ImmutablePatch = fwdPatch
     val reverse: Edge = if reverseOrNull != null then reverseOrNull else Edge(target, bwdPatch, fwdPatch, source, this)
 
-  class Node(val fitness: Fitness, val sequentialIndex: Long):
+  class Node(val fitness: Fitness):
     private[SingleSlotMSTPopulation] var referenceCount = 1
     private[SingleSlotMSTPopulation] val edges = new ArrayBuffer[Edge](2)
     private[SingleSlotMSTPopulation] var nextEdgeInPath = -1
-
-  trait NodePairListener:
-    def accept(n1: Node, n2: Node, distance: Int): Unit
 
   override type IndividualHandle = Node
 
@@ -29,15 +27,6 @@ trait SingleSlotMSTPopulation extends Population:
   private val masterPatch = createMutablePatch()
   private var currentNode: Node = _
   private var sumPatchSizes: Long = 0
-  private var numberOfNodesGenerated: Long = 0
-  private val listeners = new ArrayBuffer[NodePairListener]()
-
-  private def nextNewNode(fitness: Fitness): Node =
-    val result = Node(fitness, numberOfNodesGenerated)
-    numberOfNodesGenerated += 1
-    result
-
-  def addNodePairListener(listener: NodePairListener): Unit = listeners.addOne(listener)
 
   def totalSizeOfPatches: Long = sumPatchSizes
 
@@ -51,7 +40,7 @@ trait SingleSlotMSTPopulation extends Population:
   override def newRandomIndividualH(): IndividualHandle =
     if currentNode == null then
       // This happens only when we are requested for the first time
-      currentNode = nextNewNode(computeFitness(masterIndividual))
+      currentNode = Node(computeFitness(masterIndividual))
       currentNode
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow
@@ -89,18 +78,22 @@ trait SingleSlotMSTPopulation extends Population:
     val shortestDistance = buildReversePathToShortestDistance(null, currentNode)
     // the path from currentNode now goes backwards to the node where we need to move
     rewindMastersByBackwardPath()
-    // now currentNode is our new immediate parent, and masterPatch points exactly to the new node to create
-    val bestToNewPatch = createImmutableVersion(masterPatch)
-    val newToBestPatch = reversedImmutablePatch(bestToNewPatch)
-    val newNode = nextNewNode(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, bestToNewPatch))
-    clearMutablePatch(masterPatch)
-    // now masterIndividual matches newNode
-    val bestToNewEdge = Edge(currentNode, bestToNewPatch, newToBestPatch, newNode)
-    currentNode.edges.addOne(bestToNewEdge)
-    newNode.edges.addOne(bestToNewEdge.reverse)
-    sumPatchSizes += shortestDistance
-    currentNode = newNode
-    currentNode
+    if shortestDistance == 0 && !allowDuplicates then
+      currentNode.referenceCount += 1
+      currentNode
+    else
+      // now currentNode is our new immediate parent, and masterPatch points exactly to the new node to create
+      val bestToNewPatch = createImmutableVersion(masterPatch)
+      val newToBestPatch = reversedImmutablePatch(bestToNewPatch)
+      val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, bestToNewPatch))
+      clearMutablePatch(masterPatch)
+      // now masterIndividual matches newNode
+      val bestToNewEdge = Edge(currentNode, bestToNewPatch, newToBestPatch, newNode)
+      currentNode.edges.addOne(bestToNewEdge)
+      newNode.edges.addOne(bestToNewEdge.reverse)
+      sumPatchSizes += shortestDistance
+      currentNode = newNode
+      currentNode
 
   @tailrec
   private def disconnectRecursively(handle: IndividualHandle): Unit =
@@ -118,14 +111,8 @@ trait SingleSlotMSTPopulation extends Population:
       if otherNode.referenceCount == 0 then
         disconnectRecursively(otherNode)
 
-  private def notifyListenersReturnDistance(curr: Node, distance: Int): Int =
-    listeners.foreach(_.accept(currentNode, curr, distance))
-    distance
-
   private def buildReversePathToShortestDistance(parent: Node, curr: Node): Int =
-    var currentDistance = if curr.referenceCount > 0 then
-      notifyListenersReturnDistance(curr, mutablePatchSize(masterPatch))
-    else Int.MaxValue
+    var currentDistance = if curr.referenceCount > 0 then mutablePatchSize(masterPatch) else Int.MaxValue
     curr.nextEdgeInPath = -1
     val edges = curr.edges
     Loops.loop(0, edges.size) { i =>
@@ -139,6 +126,43 @@ trait SingleSlotMSTPopulation extends Population:
           curr.nextEdgeInPath = i
     }
     currentDistance
+
+  def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
+    assert(base.referenceCount > 0)
+    buildPathToNode(null, currentNode, base)
+    rewindMasterIndividualByPath()
+    clearMutablePatch(masterPatch)
+    collectDistanceToHandlesImpl(null, currentNode, consumer)
+
+  private def collectDistanceToHandlesImpl(parent: Node, curr: Node, function: (IndividualHandle, Int) => Unit): Unit =
+    if curr.referenceCount > 0 then function(curr, mutablePatchSize(masterPatch))
+    val edges = curr.edges
+    Loops.loop(0, edges.size) { i =>
+      val edge = edges(i)
+      if edge.target != parent then
+        appendToMutablePatch(masterPatch, edge.patch)
+        collectDistanceToHandlesImpl(curr, edge.target, function)
+        appendToMutablePatch(masterPatch, edge.reverse.patch)
+    }
+
+  def collectHandlesAtDistance(base: IndividualHandle, distance: Int, buffer: ArrayBuffer[IndividualHandle]): Unit =
+    assert(base.referenceCount > 0)
+    buildPathToNode(null, currentNode, base)
+    rewindMasterIndividualByPath()
+    clearMutablePatch(masterPatch)
+    buffer.clear()
+    collectHandlesAtDistanceImpl(null, currentNode, distance, buffer)
+
+  private def collectHandlesAtDistanceImpl(parent: Node, curr: Node, distance: Int, buffer: ArrayBuffer[Node]): Unit =
+    if curr.referenceCount > 0 && mutablePatchSize(masterPatch) == distance then buffer.addOne(curr)
+    val edges = curr.edges
+    Loops.loop(0, edges.size) { i =>
+      val edge = edges(i)
+      if edge.target != parent then
+        appendToMutablePatch(masterPatch, edge.patch)
+        collectHandlesAtDistanceImpl(curr, edge.target, distance, buffer)
+        appendToMutablePatch(masterPatch, edge.reverse.patch)
+    }
 
   private def buildPathToNode(parent: Node, curr: Node, target: Node): Boolean =
     if curr == target then

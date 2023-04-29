@@ -30,14 +30,15 @@ object OneMaxTimeMeasurements:
     val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
     val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
     val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, 1.4 / n))
+    val neverForgettingGA = new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5)
 
-    val evaluations = new MeanAndStandardDeviation(window = 10)
+    val evaluations, evaluationTimes = new MeanAndStandardDeviation(window = 10)
 
     println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
-      case "naive" => Problems.naiveOneMaxFT(n)
-      case "incre" => Problems.incrementalOneMaxFT(n)
+      case "naive" => assert(algo != "NFGA"); Problems.naiveOneMaxFT(n)
+      case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false)
 
     while System.in.available() == 0 do
       val result = algo match
@@ -46,10 +47,15 @@ object OneMaxTimeMeasurements:
         case "(2+1)" => run(twoPlusOneGA)(newProblem())
         case "(10+1)" => run(tenPlusOneGA)(newProblem())
         case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
-      val curr = result.avgTimePerEval
-      evaluations.record(curr)
-      val cnt = evaluations.count
+        case "NFGA" => run(neverForgettingGA)(Problems.incrementalOneMaxFT(n, allowDuplicates = false))
+      val currTime = result.avgTimePerEval
+      val currEval = result.avgEvaluations
+      evaluationTimes.record(currTime)
+      evaluations.record(currEval)
+      val cnt = evaluationTimes.count
       if cnt == 10 then
-        println(s"$curr. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
+        println(s"$currTime. Over last $cnt: ($n,${evaluationTimes.mean})+-(0,${evaluationTimes.stdDev})")
+        println(s"  $currEval. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
       else
-        println(curr)
+        println(currTime)
+        println(s"  $currEval")

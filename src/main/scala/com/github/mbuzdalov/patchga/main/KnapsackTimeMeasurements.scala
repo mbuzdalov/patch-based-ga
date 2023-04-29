@@ -47,7 +47,7 @@ object KnapsackTimeMeasurements:
 
     def incremental() =
       val weights, values = randomArray()
-      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget)
+      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget, allowDuplicates = true)
 
     def newProblem() = flavour match
       case "naive" => naive()
