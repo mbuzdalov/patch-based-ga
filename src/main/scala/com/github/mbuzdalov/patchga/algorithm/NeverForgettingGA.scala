@@ -61,12 +61,12 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
     val nodesSorted = new SortedVector[IndividualHandle](using inverseFitnessOrdering)
     nodesSorted.add(newRandomIndividualH())
 
-    val allDistanceSamplers = Array.tabulate(maximumPatchSize - 1)(s => new DistanceSampler(s + 1))
+    val allDistanceSamplers = Array.tabulate(maximumPatchSize - 1)(s => new DistanceSampler(s + 2))
     val aliveDistanceSamplers = new SortedVector[DistanceSampler](using Ordering.by(_.distance))
 
     def registerPair(n1: IndividualHandle, n2: IndividualHandle, distance: Int): Unit =
-      if distance > 1 then
-        val sampler = allDistanceSamplers(distance - 1)
+      if distance >= 2 then
+        val sampler = allDistanceSamplers(distance - 2)
         if sampler.isEmpty then aliveDistanceSamplers.add(sampler)
         sampler.registerParents(n1, n2)
 
