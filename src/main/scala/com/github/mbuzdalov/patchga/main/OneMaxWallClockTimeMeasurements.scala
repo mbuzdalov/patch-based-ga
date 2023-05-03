@@ -6,7 +6,7 @@ import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
-object OneMaxTimeMeasurements:
+object OneMaxWallClockTimeMeasurements:
   private case class RunResults(avgEvaluations: Double, avgTime: Double):
     def avgTimePerEval: Double = avgTime / avgEvaluations
 

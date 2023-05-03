@@ -10,14 +10,14 @@ This is the first paper that introduces this project and performs first experime
 
 ### Runtime measurements for OneMax
 
-Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.OneMaxTimeMeasurements <algo> <flavor> <n>"`, where:
+Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.OneMaxWallClockTimeMeasurements <algo> <flavor> <n>"`, where:
 - `<algo>`: an algorithm to run, one of: `RLS`, `(1+1)`, `(2+1)`, `(10+1)`, `(50+1)`.
 - `<flavor>`: the way to work with populations, one of: `naive`, `incre`.
 - `<n>`: the problem size, a positive integer.
 
 ### Runtime measurements for the knapsack problem
 
-Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.KnapsackTimeMeasurements <algo> <flavor> <n> <budget>"`, where:
+Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.KnapsackWallClockTimeMeasurements <algo> <flavor> <n> <budget>"`, where:
 - `<algo>`: an algorithm to run, one of: `RLS`, `(1+1)`, `(2+1)`, `(10+1)`, `(50+1)`.
 - `<flavor>`: the way to work with populations, one of: `naive`, `incre`.
 - `<n>`: the problem size, a positive integer.

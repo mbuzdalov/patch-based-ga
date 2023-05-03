@@ -9,7 +9,7 @@ import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
-object KnapsackTimeMeasurements:
+object KnapsackWallClockTimeMeasurements:
   private case class RunResults(avgTime: Double, avgFitness: Double)
 
   private def run(optimizer: Optimizer)

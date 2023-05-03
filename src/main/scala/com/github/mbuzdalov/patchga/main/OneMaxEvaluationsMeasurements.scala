@@ -9,7 +9,7 @@ import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
-object OneMaxRuntimeMeasurements:
+object OneMaxEvaluationsMeasurements:
   def main(args: Array[String]): Unit =
     val minLogN = args(0).toInt
     val maxLogN = args(1).toInt
