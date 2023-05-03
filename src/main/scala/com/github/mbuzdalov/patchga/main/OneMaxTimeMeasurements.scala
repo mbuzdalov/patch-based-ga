@@ -30,14 +30,13 @@ object OneMaxTimeMeasurements:
     val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
     val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
     val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, 1.4 / n))
-    val neverForgettingGA = new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5)
 
     val evaluations, evaluationTimes = new MeanAndStandardDeviation(window = 10)
 
     println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
-      case "naive" => assert(algo != "NFGA"); Problems.naiveOneMaxFT(n)
+      case "naive" => Problems.naiveOneMaxFT(n)
       case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false)
 
     while System.in.available() == 0 do
@@ -47,7 +46,6 @@ object OneMaxTimeMeasurements:
         case "(2+1)" => run(twoPlusOneGA)(newProblem())
         case "(10+1)" => run(tenPlusOneGA)(newProblem())
         case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
-        case "NFGA" => run(neverForgettingGA)(Problems.incrementalOneMaxFT(n, allowDuplicates = false))
       val currTime = result.avgTimePerEval
       val currEval = result.avgEvaluations
       evaluationTimes.record(currTime)
