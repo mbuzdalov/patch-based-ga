@@ -30,9 +30,9 @@ object KnapsackTimeMeasurements:
     val n = args(2).toInt
     val budget = args(3).toInt
 
-    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
-    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
-    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, 1.4 / n))
+    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
+    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
+    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
 
     val evaluations = new MeanAndStandardDeviation(window = 10)
 

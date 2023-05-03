@@ -18,7 +18,7 @@ object KnapsackDiversityMeasurements:
     val weights, values = randomArray()
     val capacity = weights.sum / 2
 
-    val optimizer = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
+    val optimizer = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
     def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true)
 
     val patchSize, operationTime = new MeanAndStandardDeviation()
