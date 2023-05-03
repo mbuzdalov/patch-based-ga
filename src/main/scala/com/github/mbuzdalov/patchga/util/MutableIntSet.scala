@@ -24,6 +24,9 @@ class MutableIntSet(maxSize: Int):
       moveGivenElementToPosition(element, nElements)
 
   def groupAddRemove(toRemove: Int, toAdd: Int, rng: Random): Unit =
+    require(0 <= toRemove && toRemove <= nElements, s"toRemove = $toRemove, nElements = $nElements")
+    require(0 <= toAdd && toAdd <= maxSize - nElements, s"toAdd = $toAdd, maxSize - nElements = ${maxSize - nElements}")
+
     val oldNElements = nElements
     // First, we normally remove first random `toRemove` elements, noting that the removed elements will be under the old nElements value
     Loops.loop(0, toRemove)(_ => remove(contents(rng.nextInt(nElements))))
