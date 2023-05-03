@@ -10,21 +10,30 @@ import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
 object OneMaxEvaluationsMeasurements:
+  private type OptimizerType = Optimizer {
+    type RequiredConfig >: Problems.OneMaxFT & SingleSlotMSTPopulation
+  }
+
+  private def algorithmList(name: String): Seq[(String, OptimizerType)] =
+    name match
+      case "default" => Seq(
+        "RLS" -> RandomizedLocalSearch,
+        "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
+        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 0.05 / n))),
+        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 0.09 / n))),
+        "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5),
+      )
+      case "(2+1)" => for cc <- 10 to 90; c = cc * 0.001 yield
+        s"(2+1) EA [$c]" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, c / n)))
+      case "(10+1)" => for cc <- 10 to 90; c = cc * 0.001 yield
+        s"(10+1) EA [$c]" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, c / n)))
+
   def main(args: Array[String]): Unit =
     val minLogN = args(0).toInt
     val maxLogN = args(1).toInt
     val pool = new ScheduledThreadPoolExecutor(Runtime.getRuntime.availableProcessors())
 
-    val algorithms: Seq[(String, Optimizer {
-      type RequiredConfig >: Problems.OneMaxFT & SingleSlotMSTPopulation
-    })] = Seq(
-      "RLS" -> RandomizedLocalSearch,
-      "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
-      "(2+1) GA" -> new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n))),
-      "(10+1) GA" -> new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n))),
-      "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5),
-    )
-
+    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(2).getOrElse("default"))
     val nRuns = 101
 
     for
