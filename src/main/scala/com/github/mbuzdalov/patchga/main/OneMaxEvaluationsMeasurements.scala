@@ -23,18 +23,18 @@ object OneMaxEvaluationsMeasurements:
         "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 0.09 / n))),
         "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5),
       )
-      case "(2+1)" => for cc <- 10 to 90; c = cc * 0.001 yield
+      case "(2+1)" => for cc <- 1 to 10; c = (1 << cc) * 0.001 yield
         s"(2+1) EA [$c]" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, c / n)))
-      case "(10+1)" => for cc <- 10 to 90; c = cc * 0.001 yield
+      case "(10+1)" => for cc <- 1 to 10; c = (1 << cc) * 0.001 yield
         s"(10+1) EA [$c]" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, c / n)))
 
   def main(args: Array[String]): Unit =
     val minLogN = args(0).toInt
     val maxLogN = args(1).toInt
-    val pool = new ScheduledThreadPoolExecutor(Runtime.getRuntime.availableProcessors())
+    val nRuns = args(2).toInt
+    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(3).getOrElse("default"))
 
-    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(2).getOrElse("default"))
-    val nRuns = 101
+    val pool = new ScheduledThreadPoolExecutor(Runtime.getRuntime.availableProcessors())
 
     for
       nLog <- minLogN to maxLogN
