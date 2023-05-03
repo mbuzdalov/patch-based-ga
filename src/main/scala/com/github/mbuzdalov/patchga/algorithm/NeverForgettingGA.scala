@@ -23,8 +23,13 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
 
     def sampleDistanceForCrossover(distance: Int) = PowerLawDistribution.sample(distance, crossoverDistanceBeta, random)
 
-    class CounterRecord(val handle: IndividualHandle, var count: Int) extends Comparable[CounterRecord]:
-      override def compareTo(o: CounterRecord): Int = summon[Ordering[Fitness]].compare(o.handle.fitness, handle.fitness)
+    class CounterRecord(val handle: IndividualHandle, var count: Int, val recordId: Int) extends Comparable[CounterRecord]:
+      override def compareTo(o: CounterRecord): Int =
+        val byFitness = summon[Ordering[Fitness]].compare(o.handle.fitness, handle.fitness)
+        if byFitness != 0 then byFitness else
+          if count != o.count then o.count - count else
+            o.recordId - recordId
+
 
     val inverseFitnessOrdering = Ordering.by[IndividualHandle, Fitness](_.fitness).reverse
 
@@ -32,10 +37,12 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
       private val handleMap = new JHashMap[IndividualHandle, CounterRecord]()
       private val recordSet = new MuTreeSet[CounterRecord]()
       private var nPairs = 0L
+      private var nRecords = 0
 
       def isEmpty: Boolean = handleMap.isEmpty
       private def newCounterRecord(handle: IndividualHandle) =
-        val result = new CounterRecord(handle, 0)
+        val result = new CounterRecord(handle, 0, nRecords)
+        nRecords += 1
         recordSet.addOne(result)
         result
 
