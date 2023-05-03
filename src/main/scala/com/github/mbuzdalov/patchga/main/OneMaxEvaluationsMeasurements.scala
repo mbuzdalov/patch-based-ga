@@ -32,9 +32,10 @@ object OneMaxEvaluationsMeasurements:
     val minLogN = args(0).toInt
     val maxLogN = args(1).toInt
     val nRuns = args(2).toInt
-    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(3).getOrElse("default"))
+    val nProcessors = args(3).toInt
+    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(4).getOrElse("default"))
 
-    val pool = new ScheduledThreadPoolExecutor(Runtime.getRuntime.availableProcessors())
+    val pool = new ScheduledThreadPoolExecutor(if nProcessors <= 0 then Runtime.getRuntime.availableProcessors() else nProcessors)
 
     for
       nLog <- minLogN to maxLogN
