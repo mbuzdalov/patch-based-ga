@@ -5,7 +5,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.config.FitnessType
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
+import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
 import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
@@ -21,13 +21,16 @@ object KnapsackQualityMeasurements:
       case "default" => Seq(
         "RLS" -> RandomizedLocalSearch,
         "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
-        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 0.002 / n))),
-        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 0.004 / n))),
+        "(1+1) hEA" -> new OnePlusOneEA(n => PowerLawDistribution(n, 1.5)),
+        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 4.0 / n))),
+        "(2+1) hGA" -> new MuPlusOneGA(2, 1, n => PowerLawDistribution(n, 1.5)),
+        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 4.0 / n))),
+        "(10+1) hGA" -> new MuPlusOneGA(10, 1, n => PowerLawDistribution(n, 1.5)),
         "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5),
       )
-      case "(2+1)" => for cc <- 0 to 10; c = (1 << cc) * 0.001 yield
+      case "(2+1)" => for cc <- 8 to 15; c = (1 << cc) * 0.001 yield
         s"(2+1) EA [$c]" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, c / n)))
-      case "(10+1)" => for cc <- 0 to 10; c = (1 << cc) * 0.001 yield
+      case "(10+1)" => for cc <- 8 to 15; c = (1 << cc) * 0.001 yield
         s"(10+1) EA [$c]" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, c / n)))
 
   def main(args: Array[String]): Unit =
