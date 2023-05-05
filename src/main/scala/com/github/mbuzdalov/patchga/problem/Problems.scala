@@ -3,6 +3,7 @@ package com.github.mbuzdalov.patchga.problem
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.infra.*
 import com.github.mbuzdalov.patchga.population.*
+import com.github.mbuzdalov.patchga.problem
 import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
 
 object Problems:
@@ -15,6 +16,16 @@ object Problems:
   def incrementalOneMaxFT(size: Int, allowDuplicates: Boolean): OneMaxFT & SingleSlotMSTPopulation =
     new UnconstrainedBitString(size) with OneMax with OneMax.Incremental with SingleSlotMSTPopulation(allowDuplicates) with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
       override def targetFitness: Fitness = size
+
+  type LinearFT = UnconstrainedBitString & LinearIntegerWeights & Population & ThreadLocalRandomProvider & FixedTargetTerminator
+
+  def naiveLinearFT(size: Int, maxWeight: Int): LinearFT =
+    new UnconstrainedBitString(size) with LinearIntegerWeights(maxWeight) with NaiveScratchPopulation with ThreadLocalRandomProvider with FixedTargetTerminator:
+      override def targetFitness: Fitness = sumWeights
+
+  def incrementalLinearFT(size: Int, maxWeight: Int, allowDuplicates: Boolean): LinearFT & SingleSlotMSTPopulation =
+    new UnconstrainedBitString(size) with LinearIntegerWeights(maxWeight) with LinearIntegerWeights.Incremental with SingleSlotMSTPopulation(allowDuplicates) with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
+      override def targetFitness: Fitness = sumWeights
 
   type LeadingOnesFT = UnconstrainedBitString & LeadingOnes & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
