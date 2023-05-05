@@ -16,6 +16,16 @@ object Problems:
     new UnconstrainedBitString(size) with OneMax with OneMax.Incremental with SingleSlotMSTPopulation(allowDuplicates) with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
       override def targetFitness: Fitness = size
 
+  type LeadingOnesFT = UnconstrainedBitString & LeadingOnes & Population & ThreadLocalRandomProvider & FixedTargetTerminator
+
+  def naiveLeadingOnesFT(size: Int): LeadingOnesFT =
+    new UnconstrainedBitString(size) with LeadingOnes with NaiveScratchPopulation with ThreadLocalRandomProvider with FixedTargetTerminator:
+      override def targetFitness: Fitness = size
+
+  def incrementalLeadingOnesFT(size: Int, allowDuplicates: Boolean): LeadingOnesFT & SingleSlotMSTPopulation =
+    new UnconstrainedBitString(size) with LeadingOnes with LeadingOnes.Incremental with SingleSlotMSTPopulation(allowDuplicates) with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
+      override def targetFitness: Fitness = size
+
   type KnapsackFB = UnconstrainedBitString & Knapsack & Population & ThreadLocalRandomProvider & FixedBudgetTerminator
 
   def naiveKnapsackFB(weights: IArray[Int], values: IArray[Int], capacity: Int, budget: Int): KnapsackFB =
