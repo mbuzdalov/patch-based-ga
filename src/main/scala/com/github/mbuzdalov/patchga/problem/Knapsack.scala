@@ -9,10 +9,10 @@ trait Knapsack(val weights: IArray[Int], val values: IArray[Int], val capacity: 
   override type Fitness = Knapsack.FitnessObject
 
   override def compare(lhs: Fitness, rhs: Fitness): Int =
-    if lhs.isValid != rhs.isValid then
-      if lhs.isValid then 1 else -1
+    if lhs.isValid then
+      if rhs.isValid then java.lang.Long.compare(lhs.sumValues, rhs.sumValues) else 1
     else
-      java.lang.Long.compare(lhs.sumValues, rhs.sumValues)
+      if rhs.isValid then -1 else java.lang.Long.compare(rhs.sumWeights, lhs.sumWeights)
 
   override def computeFitness(ind: Individual): Fitness =
     var sumWeights, sumValues = 0L
