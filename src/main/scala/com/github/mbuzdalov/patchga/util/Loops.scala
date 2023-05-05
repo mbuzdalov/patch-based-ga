@@ -8,10 +8,11 @@ object Loops:
       idx += 1
   
   inline def exists(from: Int, until: Int)(inline function: Int => Boolean): Boolean =
+    find(from, until)(function) < until  
+  
+  inline def find(from: Int, until: Int)(inline function: Int => Boolean): Int =
     var idx = from
-    var result = false
-    while idx < until && !result do
-      result = function(idx)
+    while idx < until && !function(idx) do
       idx += 1
-    result  
+    idx
     
