@@ -1,0 +1,59 @@
+package com.github.mbuzdalov.patchga.main
+
+import java.util.Random
+import java.util.concurrent.ScheduledThreadPoolExecutor
+
+import com.github.mbuzdalov.patchga.algorithm.*
+import com.github.mbuzdalov.patchga.config.FitnessType
+import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
+import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
+import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
+import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
+import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
+
+object KnapsackQualityMeasurements:
+  private type OptimizerType = Optimizer {
+    type RequiredConfig >: Problems.KnapsackFB & SingleSlotMSTPopulation
+  }
+
+  private def algorithmList(name: String): Seq[(String, OptimizerType)] =
+    name match
+      case "default" => Seq(
+        "RLS" -> RandomizedLocalSearch,
+        "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
+        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 0.002 / n))),
+        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 0.004 / n))),
+        "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5),
+      )
+      case "(2+1)" => for cc <- 0 to 10; c = (1 << cc) * 0.001 yield
+        s"(2+1) EA [$c]" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, c / n)))
+      case "(10+1)" => for cc <- 0 to 10; c = (1 << cc) * 0.001 yield
+        s"(10+1) EA [$c]" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, c / n)))
+
+  def main(args: Array[String]): Unit =
+    val n = args(0).toInt
+    val budget = args(1).toInt
+    val nRuns = args(2).toInt
+    val nProcessors = args(3).toInt
+    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(4).getOrElse("default"))
+
+    val pool = new ScheduledThreadPoolExecutor(if nProcessors <= 0 then Runtime.getRuntime.availableProcessors() else nProcessors)
+
+    for (algoName, algo) <- algorithms do
+      val tasks = IndexedSeq.tabulate(nRuns)(i => pool.submit(() => {
+        val rng = new Random(134235253 * (i + 132))
+        val weights, values = IArray.fill(n)(10000 + rng.nextInt(10000))
+        val capacity = weights.sum / 2
+        val problem = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = false)
+        val rawFitness = FixedBudgetTerminator.runUntilBudgetReached(algo)(problem).fitness
+        if rawFitness.isValid then rawFitness.sumValues else 0
+      }))
+      val results = tasks.map(_.get()).sorted
+      val evaluationStats = new MeanAndStandardDeviation(nRuns)
+      results.foreach(v => evaluationStats.record(v.toDouble))
+      val median = results(nRuns / 2)
+      println(s"$n, $algoName:")
+      println(s"  median $median, mean ${evaluationStats.mean}, stddev ${evaluationStats.stdDev}")
+      println(results.mkString("  runs: ", ",", ""))
+
+    pool.shutdown()
