@@ -16,10 +16,13 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
     def patch: ImmutablePatch = fwdPatch
     val reverse: Edge = if reverseOrNull != null then reverseOrNull else Edge(target, bwdPatch, fwdPatch, source, this)
 
-  class Node(val fitness: Fitness):
+  abstract class Node:
     private[SingleSlotMSTPopulation] var referenceCount = 1
     private[SingleSlotMSTPopulation] val edges = new ArrayBuffer[Edge](2)
     private[SingleSlotMSTPopulation] var nextEdgeInPath = -1
+    def fitness: Fitness
+
+  private class KnownFitnessNode(val fitness: Fitness) extends Node
 
   override type IndividualHandle = Node
 
@@ -40,7 +43,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
   override def newRandomIndividualH(): IndividualHandle =
     if currentNode == null then
       // This happens only when we are requested for the first time
-      currentNode = Node(computeFitness(masterIndividual))
+      currentNode = KnownFitnessNode(computeFitness(masterIndividual))
       currentNode
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow
@@ -85,7 +88,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
       // now currentNode is our new immediate parent, and masterPatch points exactly to the new node to create
       val bestToNewPatch = createImmutableVersion(masterPatch)
       val newToBestPatch = reversedImmutablePatch(bestToNewPatch)
-      val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, bestToNewPatch))
+      val newNode = KnownFitnessNode(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, bestToNewPatch))
       clearMutablePatch(masterPatch)
       // now masterIndividual matches newNode
       val bestToNewEdge = Edge(currentNode, bestToNewPatch, newToBestPatch, newNode)
@@ -112,7 +115,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
         disconnectRecursively(otherNode)
 
   private def buildReversePathToShortestDistance(parent: Node, curr: Node): Int =
-    var currentDistance = if curr.referenceCount > 0 then mutablePatchSize(masterPatch) else Int.MaxValue
+    var currentDistance = mutablePatchSize(masterPatch)
     curr.nextEdgeInPath = -1
     val edges = curr.edges
     Loops.loop(0, edges.size) { i =>
