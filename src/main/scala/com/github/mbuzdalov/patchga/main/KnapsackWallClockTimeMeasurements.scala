@@ -1,6 +1,5 @@
 package com.github.mbuzdalov.patchga.main
 
-import java.io.PrintWriter
 import java.util.Random
 
 import com.github.mbuzdalov.patchga.algorithm.*
@@ -30,7 +29,7 @@ object KnapsackWallClockTimeMeasurements:
     val flavour = args(1)
     val n = args(2).toInt
     val budget = args(3).toInt
-    val pw = args.lift.apply(4).map(file => new PrintWriter(file))
+    val compactOutput = args.length > 4 && args(4) == "compact"
 
     val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
     val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
@@ -64,11 +63,11 @@ object KnapsackWallClockTimeMeasurements:
         case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
       val curr = result.avgTime / budget
       evaluations.record(curr)
-      val cnt = evaluations.count
-      if cnt == 10 then
-        println(s"$curr. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
-      else
-        println(curr)
+      if !compactOutput then
+        val cnt = evaluations.count
+        if cnt == 10 then
+          println(s"$curr. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
+        else
+          println(curr)
 
-    pw.foreach(_.print(s"($n,${evaluations.mean})+-(0,${evaluations.stdDev})"))
-    pw.foreach(_.close())
+    if compactOutput then print(s"($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
