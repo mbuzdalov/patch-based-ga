@@ -34,7 +34,7 @@ object OneMaxWallClockTimeMeasurements:
 
     val evaluations, evaluationTimes = new MeanAndStandardDeviation(window = 10)
 
-    println(s"$algo, $flavour, $n:")
+    if !compactOutput then println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
       case "naive" => Problems.naiveOneMaxFT(n)

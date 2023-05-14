@@ -37,7 +37,7 @@ object KnapsackWallClockTimeMeasurements:
 
     val evaluations = new MeanAndStandardDeviation(window = 10)
 
-    println(s"$algo, $flavour, $n:")
+    if !compactOutput then println(s"$algo, $flavour, $n:")
 
     val rng = new Random(n * 76324532535L)
     def randomArray() = IArray.fill(n)(10000 + rng.nextInt(10000))
