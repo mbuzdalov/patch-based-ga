@@ -25,13 +25,13 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
 
     class CounterRecord(val handle: IndividualHandle, var count: Int, val recordId: Int) extends Comparable[CounterRecord]:
       override def compareTo(o: CounterRecord): Int =
-        val byFitness = summon[Ordering[Fitness]].compare(o.handle.fitness, handle.fitness)
+        val byFitness = summon[Ordering[Fitness]].compare(fitnessH(o.handle), fitnessH(handle))
         if byFitness != 0 then byFitness else
           if count != o.count then o.count - count else
             o.recordId - recordId
 
 
-    val inverseFitnessOrdering = Ordering.by[IndividualHandle, Fitness](_.fitness).reverse
+    val inverseFitnessOrdering = Ordering.by[IndividualHandle, Fitness](fitnessH).reverse
 
     class DistanceSampler(val distance: Int):
       private val handleMap = new JHashMap[IndividualHandle, CounterRecord]()
@@ -79,7 +79,6 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
 
     @tailrec
     def go(): Nothing =
-      val totalPatchesBefore = totalSizeOfPatches
       val nextNode = if aliveDistanceSamplers.size > 0 && random.nextDouble() < crossoverProbability then
         // crossover
         val index = PowerLawDistribution.sample(aliveDistanceSamplers.size, crossoverParentDistanceSelectionBeta, random)
@@ -89,7 +88,7 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
         val index = PowerLawDistribution.sample(nodesSorted.size, mutationParentSelectionBeta, random)
         val change = PowerLawDistribution.sample(maximumPatchSize, mutationDistanceBeta, random)
         mutateH(nodesSorted(index - 1), change)
-      if totalPatchesBefore != totalSizeOfPatches then
+      if nextNode.getReferenceCount == 1 then  
         nodesSorted.add(nextNode)
         collectDistanceToHandles(nextNode, (adjNode, distance) => registerPair(nextNode, adjNode, distance))
       go()

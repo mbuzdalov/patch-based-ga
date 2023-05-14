@@ -26,6 +26,8 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
     private val edges = new ArrayBuffer[Edge](2)
     private var nextEdgeInPath: Edge = _
 
+    def getReferenceCount: Int = referenceCount
+    
     private[SingleSlotMSTPopulation] def nEdges: Int = edges.size
     private[SingleSlotMSTPopulation] def addEdge(edge: Edge): Unit =
       edges.addOne(edge)
