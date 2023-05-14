@@ -1,5 +1,7 @@
 package com.github.mbuzdalov.patchga.main
 
+import java.io.PrintWriter
+
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
@@ -26,6 +28,7 @@ object OneMaxWallClockTimeMeasurements:
     val algo = args(0)
     val flavour = args(1)
     val n = args(2).toInt
+    val pw = args.lift.apply(3).map(file => new PrintWriter(file))
 
     val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
     val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
@@ -39,7 +42,7 @@ object OneMaxWallClockTimeMeasurements:
       case "naive" => Problems.naiveOneMaxFT(n)
       case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false)
 
-    while System.in.available() == 0 do
+    for _ <- 0 until 20 do
       val result = algo match
         case "RLS" => run(RandomizedLocalSearch)(newProblem())
         case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
@@ -57,3 +60,7 @@ object OneMaxWallClockTimeMeasurements:
       else
         println(currTime)
         println(s"  $currEval")
+
+    pw.foreach(_.print(s"($n,${evaluationTimes.mean})+-(0,${evaluationTimes.stdDev})"))
+    pw.foreach(_.close())
+    
