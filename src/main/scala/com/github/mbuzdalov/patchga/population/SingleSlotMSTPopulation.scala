@@ -68,7 +68,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
     private[SingleSlotMSTPopulation] final def tryDisconnect(): Unit =
       if edges.size == 1 then
         val theEdge = edges(0)
-        sumPatchSizes -= immutablePatchSize(theEdge.patch)
+        sumPatchSizes -= theEdge.length
         edges.clear()
         val otherNode = theEdge.target
         if this == currentNode then
@@ -105,8 +105,8 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
       else
         buildPathToNode(null, currentNode, parent)
         rewindMasterIndividualByPath()
-        currentNode = this
         computedFitness = computeFitnessFunctionIncrementally(masterIndividual, parent.fitness, shortestEdge.reverse.patch)
+        currentNode = this
         this
 
   override type IndividualHandle = Node
@@ -165,14 +165,14 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
     val newNode = new LateFitnessEvaluationNode()
     rebuildMSTOnInsertion(null, currentNode, newNode) match
       case e: Edge => e.addMe()
-      case i: Int => addEdgeAtTheEndOfChain(currentNode, i, newNode)
+      case _: Int => addEdgeAtTheEndOfChain(currentNode, newNode)
     newNode.computeFitnessAndSelectResult()
 
-  private def addEdgeAtTheEndOfChain(node: Node, expectedLength: Int, target: Node): Unit =
+  private def addEdgeAtTheEndOfChain(node: Node, target: Node): Unit =
     if node.hasEdgeInPath then
       val edge = node.getEdgeInPath
       prependToMutablePatch(masterPatch, edge.reverse.patch)
-      addEdgeAtTheEndOfChain(edge.target, expectedLength, target)
+      addEdgeAtTheEndOfChain(edge.target, target)
       prependToMutablePatch(masterPatch, edge.patch)
     else
       val fwd = createImmutableVersion(masterPatch)
@@ -219,7 +219,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
             if chInt < edge.length then
               // Have to add the child's missing edge, which is virtual.
               prependToMutablePatch(masterPatch, edge.reverse.patch)
-              addEdgeAtTheEndOfChain(edge.target, chInt, inserted)
+              addEdgeAtTheEndOfChain(edge.target, inserted)
               prependToMutablePatch(masterPatch, edge.patch)
               // If the edge to child is not worse than pending, replace the pending to get rid of potentially virtual myPendingEdge
               if edge.length <= pendingLength then myPendingEdge = edge
