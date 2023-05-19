@@ -5,6 +5,7 @@ import scala.collection.mutable.ArrayBuffer
 
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, IntegerDistribution}
+import com.github.mbuzdalov.patchga.util.Loops
 
 class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionSource: Int => IntegerDistribution) extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
@@ -17,8 +18,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
 
     // Population initialization
     val population = new ArrayBuffer[IndividualHandle](populationSize)
-    for _ <- 0 until populationSize do
-      population.addOne(newRandomIndividualH())
+    Loops.loop(0, populationSize)(_ => population.addOne(newRandomIndividualH()))
 
     val smallestFitnessIndices = new Array[Int](populationSize)
     var nSmallestIndividuals = 1
@@ -29,7 +29,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
       smallestFitnessIndices(0) = 0
       smallestFitness = fitnessH(population(0))
 
-      for i <- 1 until populationSize do
+      Loops.loop(1, populationSize) { i =>
         val currFitness = fitnessH(population(i))
         val comparison = compare(smallestFitness, currFitness)
         if comparison > 0 then
@@ -38,6 +38,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
         if comparison >= 0 then
           smallestFitnessIndices(nSmallestIndividuals) = i
           nSmallestIndividuals += 1
+      }
 
     populateSmallest()
 
