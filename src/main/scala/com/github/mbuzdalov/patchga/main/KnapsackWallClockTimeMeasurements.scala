@@ -54,7 +54,7 @@ object KnapsackWallClockTimeMeasurements:
       case "naive" => naive()
       case "incre" => incremental()
 
-    for _ <- 0 until 20 do
+    Loops.repeat(20):
       val result = algo match
         case "RLS" => run(RandomizedLocalSearch)(newProblem())
         case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())

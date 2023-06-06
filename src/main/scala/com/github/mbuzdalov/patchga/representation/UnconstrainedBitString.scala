@@ -26,7 +26,8 @@ trait UnconstrainedBitString(size: Int)
     assert(size == auxParent.length)
     // First, count the number of differing bits between the parents
     var countDifferences = 0
-    Loops.loop(0, size)(i => if mainParent(i) != auxParent(i) then countDifferences += 1)
+    Loops.loop(0, size): i =>
+      if mainParent(i) != auxParent(i) then countDifferences += 1
 
     // Second, iterate over the differing bits again and mutate them in the result as appropriately
     var remainingInDiff = inDifferingBits(countDifferences)
@@ -80,7 +81,7 @@ trait UnconstrainedBitString(size: Int)
 
   override def initializeMutablePatchFromDistance(patch: MutableIntSet, distance: Int): Unit =
     patch.clear()
-    Loops.loop(0, distance)(_ => patch.add(patch.sampleElementNotInSet(random)))
+    Loops.repeat(distance)(patch.add(patch.sampleElementNotInSet(random)))
 
   override def initializeMutablePatchFromTwoIndividuals(patch: MutableIntSet, source: Array[Boolean], target: Array[Boolean]): Unit =
     patch.clear()

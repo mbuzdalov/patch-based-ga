@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class MutableIntSetTests extends AnyFlatSpec with Matchers:
-  "MutableIntSet" should "pass a torture test" in {
+  "MutableIntSet" should "pass a torture test" in:
     val n = 20
 
     val mutableIntSet = new MutableIntSet(n)
@@ -37,5 +37,3 @@ class MutableIntSetTests extends AnyFlatSpec with Matchers:
             referenceSet.contains(toAdd) shouldBe false
             mutableIntSet.add(toAdd)
             referenceSet.add(toAdd)
-
-  }

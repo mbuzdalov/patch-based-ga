@@ -18,7 +18,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
 
     // Population initialization
     val population = new ArrayBuffer[IndividualHandle](populationSize)
-    Loops.loop(0, populationSize)(_ => population.addOne(newRandomIndividualH()))
+    Loops.repeat(populationSize)(population.addOne(newRandomIndividualH()))
 
     val smallestFitnessIndices = new Array[Int](populationSize)
     var nSmallestIndividuals = 1

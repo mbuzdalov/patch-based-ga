@@ -1,6 +1,12 @@
 package com.github.mbuzdalov.patchga.util
 
 object Loops:
+  inline def repeat(times: Int)(inline function: => Any): Unit =
+    var idx = 0
+    while idx < times do
+      function
+      idx += 1
+  
   inline def loop(from: Int, until: Int)(inline function: Int => Any): Unit =
     var idx = from
     while idx < until do

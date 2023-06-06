@@ -12,7 +12,8 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     distribution.min shouldBe expectedValue
     distribution.max shouldBe expectedValue
     val rng = new Random(32423532)
-    for _ <- 0 until 10 do distribution.sample(rng) shouldBe expectedValue
+    Loops.repeat(10):
+      distribution.sample(rng) shouldBe expectedValue
 
   private def testOneOverN(distribution: IntegerDistribution): Unit =
     distribution.min shouldBe 0
@@ -20,7 +21,7 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     val rng = new Random(2354643643L)
     val counts = new Array[Int](2)
     val runs = 100000
-    for _ <- 0 until runs do
+    Loops.repeat(runs):
       val v = distribution.sample(rng)
       if v < 2 then counts(v) += 1
     val prob0 = math.exp(n * math.log1p(-1.0 / n))
@@ -38,8 +39,10 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     distribution.max shouldBe n
     val rng = new Random(33453236432L)
     val size = 10000000
-    Loops.loop(0, size)(_ => counts(distribution.sample(rng) - 1) += 1)
-    Loops.loop(0, n)(i => counts(i).toDouble / size shouldBe probabilities(i) +- math.max(0.1 * probabilities(i), 5e-6))
+    Loops.repeat(size):
+      counts(distribution.sample(rng) - 1) += 1
+    Loops.loop(0, n): i => 
+      counts(i).toDouble / size shouldBe probabilities(i) +- math.max(0.1 * probabilities(i), 5e-6)
 
   "ConstantDistribution.zero" should "produce zeros" in testConstant(ConstantDistribution.zero, 0)
   "ConstantDistribution.one" should "produce ones" in testConstant(ConstantDistribution.one, 1)

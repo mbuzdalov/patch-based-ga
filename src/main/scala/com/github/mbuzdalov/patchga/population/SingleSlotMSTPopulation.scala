@@ -132,7 +132,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
       // We basically simulate mutation from the current node.
       // Current impl of binomial distribution is somewhat too slow for Bin(n, 0.5), so we do the naive way.
       var distance = 0
-      Loops.loop(0, maximumPatchSize)(_ => if random.nextBoolean() then distance += 1)
+      Loops.repeat(maximumPatchSize)(if random.nextBoolean() then distance += 1)
       mutateH(currentNode, distance)
     end if
 
