@@ -34,7 +34,7 @@ trait UnconstrainedBitString(size: Int)
     val result = mainParent.clone()
     if remainingInDiff > 0 || remainingInSame > 0 then
       var scannedDiff, scannedSame = 0
-      Loops.loop(0, size) { i =>
+      Loops.loop(0, size): i =>
         if mainParent(i) != auxParent(i) then
           if remainingInDiff > 0 && random.nextInt(countDifferences - scannedDiff) < remainingInDiff then
             result(i) ^= true
@@ -45,7 +45,6 @@ trait UnconstrainedBitString(size: Int)
             result(i) ^= true
             remainingInSame -= 1
           scannedSame += 1
-      }
 
     // Note that if distanceToMain is greater than the number of differing bits, we flip all of them
     result
@@ -62,13 +61,12 @@ trait UnconstrainedBitString(size: Int)
   override def createMutablePatch(): MutableIntSet = new MutableIntSet(size)
 
   override def appendToMutablePatch(patch: MutableIntSet, toAppend: IArray[Int]): Unit =
-    Loops.loop(0, toAppend.length) { i =>
+    Loops.loop(0, toAppend.length): i =>
       val idx = toAppend(i)
       if patch.contains(idx) then
         patch.remove(idx)
       else
         patch.add(idx)
-    }
 
   override def prependToMutablePatch(patch: MutableIntSet, toPrepend: IArray[Int]): Unit =
     appendToMutablePatch(patch, toPrepend)

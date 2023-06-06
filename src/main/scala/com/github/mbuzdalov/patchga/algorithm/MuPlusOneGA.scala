@@ -29,7 +29,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
       smallestFitnessIndices(0) = 0
       smallestFitness = fitnessH(population(0))
 
-      Loops.loop(1, populationSize) { i =>
+      Loops.loop(1, populationSize): i =>
         val currFitness = fitnessH(population(i))
         val comparison = compare(smallestFitness, currFitness)
         if comparison > 0 then
@@ -38,7 +38,6 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
         if comparison >= 0 then
           smallestFitnessIndices(nSmallestIndividuals) = i
           nSmallestIndividuals += 1
-      }
 
     populateSmallest()
 

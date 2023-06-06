@@ -40,27 +40,24 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
     private[SingleSlotMSTPopulation] def getEdgeInPath: Edge = nextEdgeInPath
     private[SingleSlotMSTPopulation] def clearEdgeInPath(): Unit = nextEdgeInPath = null
     private[SingleSlotMSTPopulation] inline def iterateOverEdges(parent: Node)(inline fun: Edge => Unit): Unit =
-      Loops.loop(0, edges.size) { i =>
+      Loops.loop(0, edges.size): i =>
         val edge = edges(i)
         if edge.target != parent then fun(edge)
-      }
 
     private[SingleSlotMSTPopulation] inline def iterateOverOldEdges(parent: Node)(inline fun: Edge => Boolean): Unit =
       nextEdgeInPath = null
       val oldEdges = edges.toArray
       edges.clear()
-      Loops.loop(0, oldEdges.length) { i =>
+      Loops.loop(0, oldEdges.length): i =>
         val edge = oldEdges(i)
         if edge.target != parent then
           sumPatchSizes -= edge.length
           if fun(edge) then nextEdgeInPath = edge
-      }
 
     private[SingleSlotMSTPopulation] inline def findFirstEdgeForPath(parent: Node)(inline fun: Edge => Boolean): Boolean =
-      val nextEdgeInPathIndex = Loops.find(0, edges.size) { i =>
+      val nextEdgeInPathIndex = Loops.find(0, edges.size): i =>
         val edge = edges(i)
         edge.target != parent && fun(edge)
-      }
       nextEdgeInPath = if nextEdgeInPathIndex == edges.size then null else edges(nextEdgeInPathIndex)
       nextEdgeInPath != null
 
@@ -185,7 +182,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
     var myPendingEdge: Edge | Int = mutablePatchSize(masterPatch)
     var aliveChildren = 0
     // Loop over all children
-    curr.iterateOverOldEdges(parent) { edge =>
+    curr.iterateOverOldEdges(parent): edge =>
       // Call oneself recursively
       prependToMutablePatch(masterPatch, edge.reverse.patch)
       val childPendingEdge = rebuildMSTOnInsertion(curr, edge.target, inserted)
@@ -233,7 +230,6 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
                 true
               else
                 false
-    }
     if aliveChildren == 0 && curr.referenceCount == 0 then -1 else myPendingEdge
 
   def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
@@ -245,11 +241,10 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
 
   private def collectDistanceToHandlesImpl(parent: Node, curr: Node, function: (IndividualHandle, Int) => Unit): Unit =
     if curr.referenceCount > 0 then function(curr, mutablePatchSize(masterPatch))
-    curr.iterateOverEdges(parent) { edge =>
+    curr.iterateOverEdges(parent): edge =>
       appendToMutablePatch(masterPatch, edge.patch)
       collectDistanceToHandlesImpl(curr, edge.target, function)
       appendToMutablePatch(masterPatch, edge.reverse.patch)
-    }
 
   def collectHandlesAtDistance(base: IndividualHandle, distance: Int, buffer: ArrayBuffer[IndividualHandle]): Unit =
     assert(base.referenceCount > 0)
@@ -261,11 +256,10 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
 
   private def collectHandlesAtDistanceImpl(parent: Node, curr: Node, distance: Int, buffer: ArrayBuffer[Node]): Unit =
     if curr.referenceCount > 0 && mutablePatchSize(masterPatch) == distance then buffer.addOne(curr)
-    curr.iterateOverEdges(parent) { edge =>
+    curr.iterateOverEdges(parent): edge =>
       appendToMutablePatch(masterPatch, edge.patch)
       collectHandlesAtDistanceImpl(curr, edge.target, distance, buffer)
       appendToMutablePatch(masterPatch, edge.reverse.patch)
-    }
 
   private def buildPathToNode(parent: Node, curr: Node, target: Node): Boolean =
     if curr == target then

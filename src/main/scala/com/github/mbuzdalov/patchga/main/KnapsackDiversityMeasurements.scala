@@ -23,7 +23,7 @@ object KnapsackDiversityMeasurements:
 
     val patchSize, operationTime = new MeanAndStandardDeviation()
 
-    Loops.loop(0, 110) { t =>
+    Loops.loop(0, 110): t =>
       var nRuns = 0L
       val tBegin = System.nanoTime()
       while System.nanoTime() - tBegin < 1e9 do
@@ -38,4 +38,3 @@ object KnapsackDiversityMeasurements:
         operationTime.record(avgOperationTime)
         println(s"Cross time: ${operationTime.mean} +- ${operationTime.stdDev}")
         println(s"Cross size: ${patchSize.mean} +- ${patchSize.stdDev}")
-    }

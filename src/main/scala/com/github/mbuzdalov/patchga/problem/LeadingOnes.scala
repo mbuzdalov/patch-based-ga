@@ -18,14 +18,13 @@ object LeadingOnes:
     override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness, patch: ImmutablePatch): Fitness =
       var newFitness = oldFitness
       // Phase 1: apply the patch, unroll fitness if the prefix is hit
-      Loops.loop(0, patch.length) { i =>
+      Loops.loop(0, patch.length): i =>
         val idx = patch(i)
         if individual(idx) then
           individual(idx) = false
           if newFitness > idx then newFitness = idx
         else
           individual(idx) = true
-      }
       // Phase 2: if the prefix is not hit, try to extend
       if newFitness == oldFitness then
         while newFitness < individual.length && individual(newFitness) do

@@ -24,7 +24,7 @@ object LinearIntegerWeights:
 
     override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness, patch: ImmutablePatch): Fitness =
       var newFitness = oldFitness
-      Loops.loop(0, patch.length) { i =>
+      Loops.loop(0, patch.length): i =>
         val idx = patch(i)
         if individual(idx) then
           individual(idx) = false
@@ -32,5 +32,4 @@ object LinearIntegerWeights:
         else
           individual(idx) = true
           newFitness += weights(idx)
-      }
       newFitness

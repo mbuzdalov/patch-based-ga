@@ -17,12 +17,11 @@ object PowerLawDistribution:
     // array(x) contains the prefix sum for (1, 2, ..., x + 2)^{-beta}
     val maxIdx = n - 2
     if array.length <= maxIdx then
-      array.synchronized {
+      array.synchronized:
         if array.length == 0 then
           array.add(1 + math.pow(2, -beta))
         while array.length <= maxIdx do
           array.add(array.last + math.pow(array.length + 2, -beta))
-      }
     val query = rng.nextDouble() * array(maxIdx)
     if query < 1 then 1 else
       var index = 0

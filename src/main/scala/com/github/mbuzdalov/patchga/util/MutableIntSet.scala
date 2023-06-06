@@ -32,11 +32,10 @@ class MutableIntSet(maxSize: Int):
     Loops.loop(0, toRemove)(_ => remove(contents(rng.nextInt(nElements))))
     // Second, we add the elements that come from the range above `oldNElements` in two stages:
     // first, we move an element to the lower bound of the "old removed" range, then we normally add it
-    Loops.loop(0, toAdd) { i =>
+    Loops.loop(0, toAdd): i =>
       val what = contents(oldNElements + i + rng.nextInt(maxSize - oldNElements - i))
       moveGivenElementToPosition(what, oldNElements + i)
       add(what)
-    }
 
   def sampleElementInSet(rng: Random): Int =
     contents(rng.nextInt(nElements))
