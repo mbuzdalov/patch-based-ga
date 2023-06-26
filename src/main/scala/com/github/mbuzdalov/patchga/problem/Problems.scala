@@ -43,7 +43,9 @@ object Problems:
     new UnconstrainedBitString(weights.length) with Knapsack(weights, values, capacity) with NaiveScratchPopulation
       with ThreadLocalRandomProvider with FixedBudgetTerminator(budget)
 
-  def incrementalKnapsackFB(weights: IArray[Int], values: IArray[Int], capacity: Int, budget: Int, allowDuplicates: Boolean): KnapsackFB & SingleSlotMSTPopulation =
+  def incrementalKnapsackFB(weights: IArray[Int], values: IArray[Int], 
+                            capacity: Int, budget: Int, allowDuplicates: Boolean): KnapsackFB & SingleSlotMSTPopulation & TimePatchBudgetCorrelation =
     new UnconstrainedBitString(weights.length) with Knapsack(weights, values, capacity) with Knapsack.Incremental
       with SingleSlotMSTPopulation(allowDuplicates) with ThreadLocalRandomProvider
       with FixedBudgetTerminator(budget) with FixedBudgetTerminator.Incremental
+      with TimePatchBudgetCorrelation(10)

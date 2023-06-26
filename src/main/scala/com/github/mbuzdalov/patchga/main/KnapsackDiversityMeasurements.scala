@@ -1,6 +1,9 @@
 package com.github.mbuzdalov.patchga.main
 
+import java.io.PrintWriter
 import java.util.Random
+
+import scala.util.Using
 
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
@@ -11,7 +14,7 @@ import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 object KnapsackDiversityMeasurements:
   def main(args: Array[String]): Unit =
     val n = args(0).toInt
-    val budget = args(1).toInt
+    val budget = 100000
 
     val rng = new Random(n * 7632453253523432L)
     def randomArray() = IArray.fill(n)(10000 + rng.nextInt(10000))
@@ -21,20 +24,11 @@ object KnapsackDiversityMeasurements:
     val optimizer = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
     def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true)
 
-    val patchSize, operationTime = new MeanAndStandardDeviation()
-
-    Loops.loop(0, 110): t =>
-      var nRuns = 0L
-      val tBegin = System.nanoTime()
-      while System.nanoTime() - tBegin < 1e9 do
+    Using.resource(new PrintWriter("diversity-correlations.csv")): out =>
+      out.println("evaluations,avg-time,avg-patch-size")
+      Loops.loop(0, 110): t =>
         val instance = newKnapsack()
         FixedBudgetTerminator.runUntilBudgetReached(optimizer)(instance)
-        nRuns += 1
         if t >= 10 then
-          patchSize.record(instance.totalSizeOfPatches.toDouble)
-
-      if t >= 10 then
-        val avgOperationTime = (System.nanoTime() - tBegin) * 1e-9 / nRuns / budget
-        operationTime.record(avgOperationTime)
-        println(s"Cross time: ${operationTime.mean} +- ${operationTime.stdDev}")
-        println(s"Cross size: ${patchSize.mean} +- ${patchSize.stdDev}")
+          for result <- instance.timePatchBudgetCorrelations do
+            out.println(s"${result.totalEvaluations},${result.averageOperationTime},${result.averagePatchSize}")
