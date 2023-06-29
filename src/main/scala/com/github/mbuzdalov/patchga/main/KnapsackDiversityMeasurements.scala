@@ -14,7 +14,7 @@ import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 object KnapsackDiversityMeasurements:
   def main(args: Array[String]): Unit =
     val n = args(0).toInt
-    val budget = 100000
+    val budget = args(1).toInt
 
     val rng = new Random(n * 7632453253523432L)
     def randomArray() = IArray.fill(n)(10000 + rng.nextInt(10000))

@@ -27,4 +27,4 @@ Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.KnapsackWa
 
 Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.KnapsackDiversityMeasurements <n> <budget>"`, where:
 - `<n>`: the problem size, a positive integer.
-- `<budget>`: the computational budget in fitness evaluations, a positive integer.
+- `<budget>`: the maximum computational budget in fitness evaluations, a positive integer.
