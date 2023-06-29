@@ -5,22 +5,22 @@ import com.github.mbuzdalov.patchga.util.Loops
 
 trait Knapsack(val weights: IArray[Int], val values: IArray[Int], val capacity: Int)
   extends FitnessType, SimpleFitnessFunction, FitnessComparator:
-  self: IndividualType {type Individual <: Array[Boolean]} =>
+  self: IndividualType { type Individual <: Array[Boolean] } =>
+
   override type Fitness = Knapsack.FitnessObject
 
   override def compare(lhs: Fitness, rhs: Fitness): Int =
-    if lhs.isValid != rhs.isValid then
-      if lhs.isValid then 1 else -1
+    if lhs.isValid then
+      if rhs.isValid then java.lang.Long.compare(lhs.sumValues, rhs.sumValues) else 1
     else
-      java.lang.Long.compare(lhs.sumValues, rhs.sumValues)
+      if rhs.isValid then -1 else java.lang.Long.compare(rhs.sumWeights, lhs.sumWeights)
 
   override def computeFitness(ind: Individual): Fitness =
     var sumWeights, sumValues = 0L
-    Loops.loop(0, weights.length) { i =>
+    Loops.loop(0, weights.length): i =>
       if ind(i) then
         sumWeights += weights(i)
         sumValues += values(i)
-    }
     Knapsack.FitnessObject(sumWeights, sumValues, sumWeights <= capacity)
 
 object Knapsack:
@@ -32,7 +32,7 @@ object Knapsack:
                                                      patch: ImmutablePatch): Fitness =
       var sumWeights = oldFitness.sumWeights
       var sumValues = oldFitness.sumValues
-      Loops.loop(0, patch.length) { i =>
+      Loops.loop(0, patch.length): i =>
         val idx = patch(i)
         if individual(idx) then
           individual(idx) = false
@@ -42,5 +42,4 @@ object Knapsack:
           individual(idx) = true
           sumWeights += weights(idx)
           sumValues += values(idx)
-      }
       FitnessObject(sumWeights, sumValues, sumWeights <= capacity)

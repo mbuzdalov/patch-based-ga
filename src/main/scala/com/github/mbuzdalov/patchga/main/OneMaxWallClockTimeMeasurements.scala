@@ -6,7 +6,7 @@ import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
-object OneMaxTimeMeasurements:
+object OneMaxWallClockTimeMeasurements:
   private case class RunResults(avgEvaluations: Double, avgTime: Double):
     def avgTimePerEval: Double = avgTime / avgEvaluations
 
@@ -26,30 +26,39 @@ object OneMaxTimeMeasurements:
     val algo = args(0)
     val flavour = args(1)
     val n = args(2).toInt
+    val compactOutput = args.length > 3 && args(3) == "compact" 
 
-    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
-    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
-    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, 1.4 / n))
+    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
+    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
+    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
 
-    val evaluations = new MeanAndStandardDeviation(window = 10)
+    val evaluations, evaluationTimes = new MeanAndStandardDeviation(window = 10)
 
-    println(s"$algo, $flavour, $n:")
+    if !compactOutput then println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
       case "naive" => Problems.naiveOneMaxFT(n)
-      case "incre" => Problems.incrementalOneMaxFT(n)
+      case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false)
 
-    while System.in.available() == 0 do
+    Loops.repeat(20):
       val result = algo match
         case "RLS" => run(RandomizedLocalSearch)(newProblem())
         case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
         case "(2+1)" => run(twoPlusOneGA)(newProblem())
         case "(10+1)" => run(tenPlusOneGA)(newProblem())
         case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
-      val curr = result.avgTimePerEval
-      evaluations.record(curr)
-      val cnt = evaluations.count
-      if cnt == 10 then
-        println(s"$curr. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
-      else
-        println(curr)
+      val currTime = result.avgTimePerEval
+      val currEval = result.avgEvaluations
+      evaluationTimes.record(currTime)
+      evaluations.record(currEval)
+      if !compactOutput then
+        val cnt = evaluationTimes.count
+        if cnt == 10 then
+          println(s"$currTime. Over last $cnt: ($n,${evaluationTimes.mean})+-(0,${evaluationTimes.stdDev})")
+          println(s"  $currEval. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
+        else
+          println(currTime)
+          println(s"  $currEval")
+
+    if compactOutput then print(s"($n,${evaluationTimes.mean})+-(0,${evaluationTimes.stdDev})")
+    

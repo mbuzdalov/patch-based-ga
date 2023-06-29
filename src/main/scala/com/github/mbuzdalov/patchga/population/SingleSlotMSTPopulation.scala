@@ -6,22 +6,109 @@ import scala.collection.mutable.ArrayBuffer
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
 
-trait SingleSlotMSTPopulation extends Population:
-  self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual & SimpleFitnessFunction & IncrementalFitnessFunction =>
+trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
+  self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual 
+    & SimpleFitnessFunction & IncrementalFitnessFunction & RandomProvider =>
 
   private class Edge private(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, val target: Node, reverseOrNull: Edge | Null):
     def this(source: Node, fwdPatch: ImmutablePatch, bwdPatch: ImmutablePatch, target: Node) =
       this(source, fwdPatch, bwdPatch, target, null)
     def patch: ImmutablePatch = fwdPatch
+    def length: Int = immutablePatchSize(patch)
     val reverse: Edge = if reverseOrNull != null then reverseOrNull else Edge(target, bwdPatch, fwdPatch, source, this)
+    def addMe(): Unit =
+      sumPatchSizes += length
+      target.addEdge(reverse)
+      reverse.target.addEdge(this)
 
-  class Node(val fitness: Fitness):
+  abstract class Node:
     private[SingleSlotMSTPopulation] var referenceCount = 1
-    private[SingleSlotMSTPopulation] val edges = new ArrayBuffer[Edge](2)
+    private val edges = new ArrayBuffer[Edge](2)
+    private var nextEdgeInPath: Edge = _
+
+    def getReferenceCount: Int = referenceCount
+    
+    private[SingleSlotMSTPopulation] def nEdges: Int = edges.size
+    private[SingleSlotMSTPopulation] def addEdge(edge: Edge): Unit =
+      edges.addOne(edge)
+    private[SingleSlotMSTPopulation] def removeEdge(edge: Edge): Unit =
+      val index = edges.indexOf(edge)
+      assert(index >= 0)
+      edges.remove(index)
+    private[SingleSlotMSTPopulation] def fitness: Fitness
+    private[SingleSlotMSTPopulation] def hasEdgeInPath: Boolean = nextEdgeInPath != null
+    private[SingleSlotMSTPopulation] def getEdgeInPath: Edge = nextEdgeInPath
+    private[SingleSlotMSTPopulation] def clearEdgeInPath(): Unit = nextEdgeInPath = null
+    private[SingleSlotMSTPopulation] inline def iterateOverEdges(parent: Node)(inline fun: Edge => Unit): Unit =
+      Loops.loop(0, edges.size): i =>
+        val edge = edges(i)
+        if edge.target != parent then fun(edge)
+
+    private[SingleSlotMSTPopulation] inline def iterateOverOldEdges(parent: Node)(inline fun: Edge => Boolean): Unit =
+      nextEdgeInPath = null
+      val oldEdges = edges.toArray
+      edges.clear()
+      Loops.loop(0, oldEdges.length): i =>
+        val edge = oldEdges(i)
+        if edge.target != parent then
+          sumPatchSizes -= edge.length
+          if fun(edge) then nextEdgeInPath = edge
+
+    private[SingleSlotMSTPopulation] inline def findFirstEdgeForPath(parent: Node)(inline fun: Edge => Boolean): Boolean =
+      val nextEdgeInPathIndex = Loops.find(0, edges.size): i =>
+        val edge = edges(i)
+        edge.target != parent && fun(edge)
+      nextEdgeInPath = if nextEdgeInPathIndex == edges.size then null else edges(nextEdgeInPathIndex)
+      nextEdgeInPath != null
+
+    @tailrec
+    private[SingleSlotMSTPopulation] final def tryDisconnect(): Unit =
+      if edges.size == 1 then
+        val theEdge = edges(0)
+        sumPatchSizes -= theEdge.length
+        edges.clear()
+        val otherNode = theEdge.target
+        if this == currentNode then
+          applyToIndividual(masterIndividual, theEdge.patch)
+          currentNode = otherNode
+        otherNode.removeEdge(theEdge.reverse)
+        if otherNode.referenceCount == 0 then
+          otherNode.tryDisconnect()
+
+
+  private class KnownFitnessNode(val fitness: Fitness) extends Node
+
+  private class LateFitnessEvaluationNode extends Node:
+    private var shortestEdge: Edge = _
+    private var computedFitness: Fitness = _
+    override private[SingleSlotMSTPopulation] def addEdge(edge: Edge): Unit =
+      super.addEdge(edge)
+      if shortestEdge == null || shortestEdge.length >= edge.length then
+        shortestEdge = edge
+
+    override private[SingleSlotMSTPopulation] def fitness: Fitness = computedFitness
+    private[SingleSlotMSTPopulation] def computeFitnessAndSelectResult(): Node =
+      val parent = shortestEdge.target
+      if shortestEdge.length == 0 then
+        assert(nEdges == 1)
+        referenceCount = 0
+        parent.referenceCount += 1
+        tryDisconnect()
+        if allowDuplicates then
+          buildPathToNode(null, currentNode, parent)
+          rewindMasterIndividualByPath()
+          computedFitness = computeFitnessFunctionIncrementally(masterIndividual, parent.fitness, shortestEdge.reverse.patch)
+        parent
+      else
+        buildPathToNode(null, currentNode, parent)
+        rewindMasterIndividualByPath()
+        computedFitness = computeFitnessFunctionIncrementally(masterIndividual, parent.fitness, shortestEdge.reverse.patch)
+        currentNode = this
+        this
 
   override type IndividualHandle = Node
 
-  private var masterIndividual = newRandomIndividual()
+  private val masterIndividual = newRandomIndividual()
   private val masterPatch = createMutablePatch()
   private var currentNode: Node = _
   private var sumPatchSizes: Long = 0
@@ -33,139 +120,162 @@ trait SingleSlotMSTPopulation extends Population:
   override def discardH(handle: IndividualHandle): Unit =
     handle.referenceCount -= 1
     if handle.referenceCount == 0 then
-      disconnectRecursively(handle)
+      handle.tryDisconnect()
 
-  override def newRandomIndividualH(): Node =
+  override def newRandomIndividualH(): IndividualHandle =
     if currentNode == null then
       // This happens only when we are requested for the first time
-      currentNode = Node(computeFitness(masterIndividual))
+      currentNode = KnownFitnessNode(computeFitness(masterIndividual))
+      currentNode
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow
-      val tempIndividual = newRandomIndividual()
-      val newNode = Node(computeFitness(tempIndividual))
-      initializeMutablePatchFromTwoIndividuals(masterPatch, tempIndividual, masterIndividual)
-      masterIndividual = tempIndividual
-      reconnect(newNode)
+      // We basically simulate mutation from the current node.
+      // Current impl of binomial distribution is somewhat too slow for Bin(n, 0.5), so we do the naive way.
+      var distance = 0
+      Loops.repeat(maximumPatchSize)(if random.nextBoolean() then distance += 1)
+      mutateH(currentNode, distance)
     end if
-    currentNode
 
-  override def mutateH(handle: Node, distance: Int): Node =
+  override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
     assert(handle.referenceCount > 0)
-    rewindToGivenNode(null, handle)
-    currentNode = handle
-    // This is the reverse patch: that is, from the newly generated node to currentNode
+    buildPathToNode(null, currentNode, handle)
+    rewindMasterIndividualByPath()
     initializeMutablePatchFromDistance(masterPatch, distance)
-    val newToOldPatch = createImmutableVersion(masterPatch)
-    val oldToNewPatch = reversedImmutablePatch(newToOldPatch)
-    val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
-    reconnect(newNode)
-    currentNode
+    newNodeFromPatch()
 
-  override def crossoverH(mainParent: Node, auxParent: Node, inDifferingBits: Int => Int, inSameBits: Int => Int): Node =
+  override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
+                          inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
     assert(mainParent.referenceCount > 0)
     assert(auxParent.referenceCount > 0)
-    rewindToGivenNode(null, mainParent)
-    currentNode = mainParent
+    buildPathToNode(null, currentNode, mainParent)
+    rewindMasterIndividualByPath()
+    buildPathToNode(null, currentNode, auxParent)
     clearMutablePatch(masterPatch)
-    collectPatchFromCurrent(null, auxParent)
+    appendForwardPathToMasterPatch(currentNode)
     val interParentDistance = mutablePatchSize(masterPatch)
     val desiredInDifferent = inDifferingBits(interParentDistance)
     val desiredInSame = inSameBits(maximumPatchSize - interParentDistance) // very brittle!
     applyCrossoverRequest(masterPatch, desiredInDifferent, desiredInSame)
-    val oldToNewPatch = createImmutableVersion(masterPatch)
-    val newNode = Node(computeFitnessFunctionIncrementally(masterIndividual, currentNode.fitness, oldToNewPatch))
-    reconnect(newNode)
-    currentNode
+    newNodeFromPatch()
 
-  private def reconnect(newNode: Node): Unit =
-    val shortestDistance = computeShortestDistance(null, currentNode)
-    rewindCurrentNodeToDistance(null, currentNode, shortestDistance)
-    assert(mutablePatchSize(masterPatch) == shortestDistance)
-    val newToBestPatch = createImmutableVersion(masterPatch)
-    val bestToNewPatch = reversedImmutablePatch(newToBestPatch)
-    val newToBestEdge = Edge(newNode, newToBestPatch, bestToNewPatch, currentNode)
-    newNode.edges.addOne(newToBestEdge)
-    currentNode.edges.addOne(newToBestEdge.reverse)
-    currentNode = newNode
-    sumPatchSizes += shortestDistance
+  private def newNodeFromPatch(): IndividualHandle =
+    val newNode = new LateFitnessEvaluationNode()
+    rebuildMSTOnInsertion(null, currentNode, newNode) match
+      case e: Edge => e.addMe()
+      case _: Int => addEdgeAtTheEndOfChain(currentNode, newNode)
+    newNode.computeFitnessAndSelectResult()
+
+  private def addEdgeAtTheEndOfChain(node: Node, target: Node): Unit =
+    if node.hasEdgeInPath then
+      val edge = node.getEdgeInPath
+      prependToMutablePatch(masterPatch, edge.reverse.patch)
+      addEdgeAtTheEndOfChain(edge.target, target)
+      prependToMutablePatch(masterPatch, edge.patch)
+    else
+      val fwd = createImmutableVersion(masterPatch)
+      val bwd = reversedImmutablePatch(fwd)
+      Edge(node, fwd, bwd, target).addMe()
+
+  private def rebuildMSTOnInsertion(parent: Node, curr: Node, inserted: Node): Edge | Int =
+    // A normal edge is stored as `Edge`
+    // A request to add an uplink edge at the end of the nextEdgeInPath chain is stored as `Int` meaning its length.
+    var myPendingEdge: Edge | Int = mutablePatchSize(masterPatch)
+    var aliveChildren = 0
+    // Loop over all children
+    curr.iterateOverOldEdges(parent): edge =>
+      // Call oneself recursively
+      prependToMutablePatch(masterPatch, edge.reverse.patch)
+      val childPendingEdge = rebuildMSTOnInsertion(curr, edge.target, inserted)
+      prependToMutablePatch(masterPatch, edge.patch)
+
+      val pendingLength = myPendingEdge match
+        case e: Edge => e.length
+        case i: Int => i
+
+      aliveChildren += 1 // we'll subtract one for the dead one
+      childPendingEdge match
+        case chEdge: Edge =>
+          if chEdge.length < edge.length then
+            // Child's missing edge is better than the edge to child, and is a real edge, so we add the former back
+            chEdge.addMe()
+            // If the edge to child is not worse than pending, replace the pending to get rid of potentially virtual myPendingEdge
+            if edge.length <= pendingLength then myPendingEdge = edge
+          else
+            // The edge to child is better than the child's missing edge, so we add the former back
+            edge.addMe()
+            // If the child's missing edge is not worse than pending, replace the pending, as the child's one is real
+            if chEdge.length <= pendingLength then myPendingEdge = chEdge
+          false
+        case chInt: Int =>
+          if chInt == -1 then
+            // -1 means the target is dead
+            aliveChildren -= 1
+            false
+          else
+            // Strict less-than here, because if they are equal, we prefer to avoid add virtual edges
+            if chInt < edge.length then
+              // Have to add the child's missing edge, which is virtual.
+              prependToMutablePatch(masterPatch, edge.reverse.patch)
+              addEdgeAtTheEndOfChain(edge.target, inserted)
+              prependToMutablePatch(masterPatch, edge.patch)
+              // If the edge to child is not worse than pending, replace the pending to get rid of potentially virtual myPendingEdge
+              if edge.length <= pendingLength then myPendingEdge = edge
+              false
+            else
+              edge.addMe()
+              if chInt < pendingLength then
+                // Child's missing edge is virtual and is better than myPendingEdge
+                myPendingEdge = chInt
+                // Retuning true means we point to that child, which will allow to route addEdgeAtTheEndOfChain where needed
+                true
+              else
+                false
+    if aliveChildren == 0 && curr.referenceCount == 0 then -1 else myPendingEdge
+
+  def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
+    assert(base.referenceCount > 0)
+    buildPathToNode(null, currentNode, base)
+    rewindMasterIndividualByPath()
+    clearMutablePatch(masterPatch)
+    collectDistanceToHandlesImpl(null, currentNode, consumer)
+
+  private def collectDistanceToHandlesImpl(parent: Node, curr: Node, function: (IndividualHandle, Int) => Unit): Unit =
+    if curr.referenceCount > 0 then function(curr, mutablePatchSize(masterPatch))
+    curr.iterateOverEdges(parent): edge =>
+      appendToMutablePatch(masterPatch, edge.patch)
+      collectDistanceToHandlesImpl(curr, edge.target, function)
+      appendToMutablePatch(masterPatch, edge.reverse.patch)
+
+  def collectHandlesAtDistance(base: IndividualHandle, distance: Int, buffer: ArrayBuffer[IndividualHandle]): Unit =
+    assert(base.referenceCount > 0)
+    buildPathToNode(null, currentNode, base)
+    rewindMasterIndividualByPath()
+    clearMutablePatch(masterPatch)
+    buffer.clear()
+    collectHandlesAtDistanceImpl(null, currentNode, distance, buffer)
+
+  private def collectHandlesAtDistanceImpl(parent: Node, curr: Node, distance: Int, buffer: ArrayBuffer[Node]): Unit =
+    if curr.referenceCount > 0 && mutablePatchSize(masterPatch) == distance then buffer.addOne(curr)
+    curr.iterateOverEdges(parent): edge =>
+      appendToMutablePatch(masterPatch, edge.patch)
+      collectHandlesAtDistanceImpl(curr, edge.target, distance, buffer)
+      appendToMutablePatch(masterPatch, edge.reverse.patch)
+
+  private def buildPathToNode(parent: Node, curr: Node, target: Node): Boolean =
+    if curr == target then
+      curr.clearEdgeInPath()
+      true
+    else curr.findFirstEdgeForPath(parent)(edge => buildPathToNode(curr, edge.target, target))
 
   @tailrec
-  private def disconnectRecursively(handle: IndividualHandle): Unit =
-    if handle.edges.size == 1 then
-      val theEdge = handle.edges(0)
-      sumPatchSizes -= immutablePatchSize(theEdge.patch)
-      handle.edges.clear()
-      val otherNode = theEdge.target
-      if handle == currentNode then
-        applyToIndividual(masterIndividual, theEdge.patch)
-        currentNode = otherNode
-      val index = otherNode.edges.indexOf(theEdge.reverse)
-      assert(index >= 0)
-      otherNode.edges.remove(index)
-      if otherNode.referenceCount == 0 then
-        disconnectRecursively(otherNode)
+  private def appendForwardPathToMasterPatch(node: Node): Unit =
+    if node.hasEdgeInPath then
+      val theEdge = node.getEdgeInPath
+      appendToMutablePatch(masterPatch, theEdge.patch)
+      appendForwardPathToMasterPatch(theEdge.target)
 
-  private def computeShortestDistance(parentNode: Node, currNode: Node): Int =
-    val edges = currNode.edges
-    var result = if currNode.referenceCount > 0 then mutablePatchSize(masterPatch) else Int.MaxValue
-    Loops.loop(0, edges.size) { i =>
-      val edge = edges(i)
-      if edge.target != parentNode then
-        addToMutablePatch(masterPatch, edge.patch)
-        result = math.min(result, computeShortestDistance(currNode, edge.target))
-        addToMutablePatch(masterPatch, edge.reverse.patch)
-    }
-    result
-
-  private def rewindCurrentNodeToDistance(parentNode: Node, currNode: Node, distance: Int): Boolean =
-    if currNode.referenceCount > 0 && mutablePatchSize(masterPatch) == distance then
-      currentNode = currNode
-      true
-    else
-      val edges = currNode.edges
-      Loops.exists(0, edges.size) { i =>
-        val edge = edges(i)
-        if edge.target == parentNode then
-          false
-        else
-          addToMutablePatch(masterPatch, edge.patch)
-          if rewindCurrentNodeToDistance(currNode, edge.target, distance) then
-            true
-          else
-            addToMutablePatch(masterPatch, edge.reverse.patch)
-            false
-      }
-
-  private def rewindToGivenNode(parentNode: Node, currNode: Node): Boolean =
-    if currNode == currentNode then
-      true
-    else
-      val edges = currNode.edges
-      Loops.exists(0, edges.size) { i =>
-        val edge = edges(i)
-        if edge.target == parentNode then
-          false
-        else
-          if rewindToGivenNode(currNode, edge.target) then
-            applyToIndividual(masterIndividual, edge.reverse.patch)
-            true
-          else
-            false
-      }
-
-  private def collectPatchFromCurrent(parentNode: Node, currNode: Node): Boolean =
-    if currNode == currentNode then
-      true
-    else
-      val edges = currNode.edges
-      Loops.exists(0, edges.size) { i =>
-        val edge = edges(i)
-        if edge.target == parentNode then
-          false
-        else
-          if collectPatchFromCurrent(currNode, edge.target) then
-            addToMutablePatch(masterPatch, edge.patch)
-            true
-          else
-            false
-      }
+  private def rewindMasterIndividualByPath(): Unit =
+    while currentNode.hasEdgeInPath do
+      val theEdge = currentNode.getEdgeInPath
+      applyToIndividual(masterIndividual, theEdge.patch)
+      currentNode = theEdge.target

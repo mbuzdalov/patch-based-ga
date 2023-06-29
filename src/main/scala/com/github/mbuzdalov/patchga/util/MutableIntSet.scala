@@ -24,16 +24,19 @@ class MutableIntSet(maxSize: Int):
       moveGivenElementToPosition(element, nElements)
 
   def groupAddRemove(toRemove: Int, toAdd: Int, rng: Random): Unit =
+    require(0 <= toRemove && toRemove <= nElements, s"toRemove = $toRemove, nElements = $nElements")
+    require(0 <= toAdd && toAdd <= maxSize - nElements, s"toAdd = $toAdd, maxSize - nElements = ${maxSize - nElements}")
+
     val oldNElements = nElements
     // First, we normally remove first random `toRemove` elements, noting that the removed elements will be under the old nElements value
-    Loops.loop(0, toRemove)(_ => remove(contents(rng.nextInt(nElements))))
+    Loops.repeat(toRemove):
+      remove(contents(rng.nextInt(nElements)))
     // Second, we add the elements that come from the range above `oldNElements` in two stages:
     // first, we move an element to the lower bound of the "old removed" range, then we normally add it
-    Loops.loop(0, toAdd) { i =>
+    Loops.loop(0, toAdd): i =>
       val what = contents(oldNElements + i + rng.nextInt(maxSize - oldNElements - i))
       moveGivenElementToPosition(what, oldNElements + i)
       add(what)
-    }
 
   def sampleElementInSet(rng: Random): Int =
     contents(rng.nextInt(nElements))

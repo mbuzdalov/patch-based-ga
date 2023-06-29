@@ -9,7 +9,7 @@ import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
-object KnapsackTimeMeasurements:
+object KnapsackWallClockTimeMeasurements:
   private case class RunResults(avgTime: Double, avgFitness: Double)
 
   private def run(optimizer: Optimizer)
@@ -29,14 +29,15 @@ object KnapsackTimeMeasurements:
     val flavour = args(1)
     val n = args(2).toInt
     val budget = args(3).toInt
+    val compactOutput = args.length > 4 && args(4) == "compact"
 
-    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, 1.2 / n))
-    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, 1.4 / n))
-    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, 1.4 / n))
+    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
+    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
+    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
 
     val evaluations = new MeanAndStandardDeviation(window = 10)
 
-    println(s"$algo, $flavour, $n:")
+    if !compactOutput then println(s"$algo, $flavour, $n:")
 
     val rng = new Random(n * 76324532535L)
     def randomArray() = IArray.fill(n)(10000 + rng.nextInt(10000))
@@ -47,13 +48,13 @@ object KnapsackTimeMeasurements:
 
     def incremental() =
       val weights, values = randomArray()
-      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget)
+      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget, allowDuplicates = true)
 
     def newProblem() = flavour match
       case "naive" => naive()
       case "incre" => incremental()
 
-    while System.in.available() == 0 do
+    Loops.repeat(20):
       val result = algo match
         case "RLS" => run(RandomizedLocalSearch)(newProblem())
         case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
@@ -62,8 +63,11 @@ object KnapsackTimeMeasurements:
         case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
       val curr = result.avgTime / budget
       evaluations.record(curr)
-      val cnt = evaluations.count
-      if cnt == 10 then
-        println(s"$curr. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
-      else
-        println(curr)
+      if !compactOutput then
+        val cnt = evaluations.count
+        if cnt == 10 then
+          println(s"$curr. Over last $cnt: ($n,${evaluations.mean})+-(0,${evaluations.stdDev})")
+        else
+          println(curr)
+
+    if compactOutput then print(s"($n,${evaluations.mean})+-(0,${evaluations.stdDev})")

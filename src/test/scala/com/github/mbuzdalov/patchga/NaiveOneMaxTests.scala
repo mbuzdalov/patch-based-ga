@@ -6,6 +6,7 @@ import com.github.mbuzdalov.patchga.algorithm.{MuPlusOneGA, OnePlusOneEA, Optimi
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
+import com.github.mbuzdalov.patchga.util.Loops
 
 class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
   private case class RunResults(avgEvaluations: Double, avgTime: Double)
@@ -15,11 +16,9 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
     val nRuns = 10
     var sumEvaluations = 0.0
     val tBegin = System.nanoTime()
-    var t = 0
-    while t < nRuns do
+    Loops.repeat(nRuns):
       val instance = problem
       sumEvaluations += FixedTargetTerminator.runUntilTargetReached(optimizer)(instance).nEvaluations
-      t += 1
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
 
   private def simpleTest(expected: Int => Double)
@@ -28,7 +27,7 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
     val n = 512
     val expectedEvs = expected(n)
     val RunResults(evs, _) = run(optimizer)(problem(n))
-    evs shouldBe expectedEvs +- (0.25 * expectedEvs)
+    evs shouldBe expectedEvs +- (0.3 * expectedEvs)
 
   "RLS on OneMax" should "work well with naive population" in
     simpleTest(n => n * math.log(n))

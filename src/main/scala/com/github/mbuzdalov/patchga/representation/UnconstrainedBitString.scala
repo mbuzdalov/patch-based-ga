@@ -26,7 +26,8 @@ trait UnconstrainedBitString(size: Int)
     assert(size == auxParent.length)
     // First, count the number of differing bits between the parents
     var countDifferences = 0
-    Loops.loop(0, size)(i => if mainParent(i) != auxParent(i) then countDifferences += 1)
+    Loops.loop(0, size): i =>
+      if mainParent(i) != auxParent(i) then countDifferences += 1
 
     // Second, iterate over the differing bits again and mutate them in the result as appropriately
     var remainingInDiff = inDifferingBits(countDifferences)
@@ -34,7 +35,7 @@ trait UnconstrainedBitString(size: Int)
     val result = mainParent.clone()
     if remainingInDiff > 0 || remainingInSame > 0 then
       var scannedDiff, scannedSame = 0
-      Loops.loop(0, size) { i =>
+      Loops.loop(0, size): i =>
         if mainParent(i) != auxParent(i) then
           if remainingInDiff > 0 && random.nextInt(countDifferences - scannedDiff) < remainingInDiff then
             result(i) ^= true
@@ -45,7 +46,6 @@ trait UnconstrainedBitString(size: Int)
             result(i) ^= true
             remainingInSame -= 1
           scannedSame += 1
-      }
 
     // Note that if distanceToMain is greater than the number of differing bits, we flip all of them
     result
@@ -61,15 +61,17 @@ trait UnconstrainedBitString(size: Int)
 
   override def createMutablePatch(): MutableIntSet = new MutableIntSet(size)
 
-  override def addToMutablePatch(patch: MutableIntSet, toAdd: IArray[Int]): Unit =
-    Loops.loop(0, toAdd.length) { i =>
-      val idx = toAdd(i)
+  override def appendToMutablePatch(patch: MutableIntSet, toAppend: IArray[Int]): Unit =
+    Loops.loop(0, toAppend.length): i =>
+      val idx = toAppend(i)
       if patch.contains(idx) then
         patch.remove(idx)
       else
         patch.add(idx)
-    }
 
+  override def prependToMutablePatch(patch: MutableIntSet, toPrepend: IArray[Int]): Unit =
+    appendToMutablePatch(patch, toPrepend)
+  
   override def clearMutablePatch(patch: MutableIntSet): Unit = patch.clear()
 
   override def mutablePatchSize(patch: MutableIntSet): Int = patch.size
@@ -79,7 +81,7 @@ trait UnconstrainedBitString(size: Int)
 
   override def initializeMutablePatchFromDistance(patch: MutableIntSet, distance: Int): Unit =
     patch.clear()
-    Loops.loop(0, distance)(_ => patch.add(patch.sampleElementNotInSet(random)))
+    Loops.repeat(distance)(patch.add(patch.sampleElementNotInSet(random)))
 
   override def initializeMutablePatchFromTwoIndividuals(patch: MutableIntSet, source: Array[Boolean], target: Array[Boolean]): Unit =
     patch.clear()
