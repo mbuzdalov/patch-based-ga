@@ -21,4 +21,12 @@ object Loops:
     while idx < until && !function(idx) do
       idx += 1
     idx
-    
+  
+  inline def count(from: Int, until: Int)(inline function: Int => Boolean): Int =
+    var idx = from
+    var result = 0
+    while idx < until do
+      if function(idx) then result += 1
+      idx +=1
+    result
+end Loops

@@ -3,11 +3,11 @@ package com.github.mbuzdalov.patchga.main
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, ConstantDistribution}
+import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
 import com.github.mbuzdalov.patchga.problem.Problems
-import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
+import com.github.mbuzdalov.patchga.util.MeanAndStandardDeviation
 
 object LinearEvaluationsMeasurements:
   private type OptimizerType = Optimizer {
@@ -43,7 +43,10 @@ object LinearEvaluationsMeasurements:
       n = 1 << nLog
       (algoName, algo) <- algorithms
     do
-      val tasks = IndexedSeq.fill(nRuns)(pool.submit(() => FixedTargetTerminator.runUntilTargetReached(algo)(Problems.incrementalLinearFT(n, maxWeight, allowDuplicates = false)).nEvaluations))
+      val tasks = IndexedSeq.fill(nRuns):
+        pool.submit: () => 
+          val lin = Problems.incrementalLinearFT(n, maxWeight, allowDuplicates = false)
+          FixedTargetTerminator.runUntilTargetReached(algo)(lin).nEvaluations
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)
       results.foreach(v => evaluationStats.record(v.toDouble))

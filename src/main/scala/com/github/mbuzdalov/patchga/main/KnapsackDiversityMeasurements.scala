@@ -9,7 +9,7 @@ import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
-import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
+import com.github.mbuzdalov.patchga.util.Loops
 
 object KnapsackDiversityMeasurements:
   def main(args: Array[String]): Unit =

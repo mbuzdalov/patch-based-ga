@@ -4,12 +4,11 @@ import java.util.Random
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.config.FitnessType
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
-import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
-import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
+import com.github.mbuzdalov.patchga.problem.Problems
+import com.github.mbuzdalov.patchga.util.MeanAndStandardDeviation
 
 object KnapsackQualityMeasurements:
   private type OptimizerType = Optimizer {
@@ -43,14 +42,14 @@ object KnapsackQualityMeasurements:
     val pool = new ScheduledThreadPoolExecutor(if nProcessors <= 0 then Runtime.getRuntime.availableProcessors() else nProcessors)
 
     for (algoName, algo) <- algorithms do
-      val tasks = IndexedSeq.tabulate(nRuns)(i => pool.submit(() => {
-        val rng = new Random(134235253 * (i + 132))
-        val weights, values = IArray.fill(n)(10000 + rng.nextInt(10000))
-        val capacity = weights.sum / 2
-        val problem = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = false)
-        val rawFitness = FixedBudgetTerminator.runUntilBudgetReached(algo)(problem).fitness
-        if rawFitness.isValid then rawFitness.sumValues else 0
-      }))
+      val tasks = IndexedSeq.tabulate(nRuns): i => 
+        pool.submit: () =>
+          val rng = new Random(134235253 * (i + 132))
+          val weights, values = IArray.fill(n)(10000 + rng.nextInt(10000))
+          val capacity = weights.sum / 2
+          val problem = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = false)
+          val rawFitness = FixedBudgetTerminator.runUntilBudgetReached(algo)(problem).fitness
+          if rawFitness.isValid then rawFitness.sumValues else 0
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)
       results.foreach(v => evaluationStats.record(v.toDouble))

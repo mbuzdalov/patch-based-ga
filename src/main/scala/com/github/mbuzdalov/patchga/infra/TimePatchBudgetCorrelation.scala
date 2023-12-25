@@ -2,7 +2,6 @@ package com.github.mbuzdalov.patchga.infra
 
 import scala.collection.mutable.ArrayBuffer
 
-import com.github.mbuzdalov.patchga.algorithm.Optimizer
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
 

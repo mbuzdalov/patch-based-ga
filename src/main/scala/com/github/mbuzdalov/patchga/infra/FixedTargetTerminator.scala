@@ -11,23 +11,19 @@ trait FixedTargetTerminator extends SimpleFitnessFunction:
   private var nFitnessEvaluations: Long = 0
   def targetFitness: Fitness
 
-  private[FixedTargetTerminator] def validateFitness(ind: Individual, fitness: Fitness): Unit =
+  private[FixedTargetTerminator] def validateFitness(ind: Individual, fitness: Fitness): Fitness =
     nFitnessEvaluations += 1
     if compare(fitness, targetFitness) >= 0 then
       throw new TargetReached(ind, fitness, nFitnessEvaluations)
+    fitness  
 
-  abstract override def computeFitness(ind: Individual): Fitness =
-    val result = super.computeFitness(ind)
-    validateFitness(ind, result)
-    result
+  abstract override def computeFitness(ind: Individual): Fitness = validateFitness(ind, super.computeFitness(ind))
 
 object FixedTargetTerminator:
   trait Incremental extends FixedTargetTerminator, IncrementalFitnessFunction:
     self: IndividualType & FitnessType & PatchType & FitnessComparator =>
     abstract override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness, patch: ImmutablePatch): Fitness =
-      val result = super.computeFitnessFunctionIncrementally(individual, oldFitness, patch)
-      validateFitness(individual, result)
-      result
+      validateFitness(individual, super.computeFitnessFunctionIncrementally(individual, oldFitness, patch))
 
   def runUntilTargetReached(optimizer: Optimizer)(config: optimizer.RequiredConfig & FixedTargetTerminator): config.TargetReached =
     try

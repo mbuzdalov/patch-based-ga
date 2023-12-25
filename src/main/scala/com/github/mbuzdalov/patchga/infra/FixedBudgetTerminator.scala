@@ -12,7 +12,7 @@ trait FixedBudgetTerminator(val maxEvaluations: Long) extends SimpleFitnessFunct
   private var bestIndividual: Individual = scala.compiletime.uninitialized
   private var bestFitness: Fitness = scala.compiletime.uninitialized
 
-  private[FixedBudgetTerminator] def validate(ind: Individual, fitness: Fitness): Unit =
+  private[FixedBudgetTerminator] def validate(ind: Individual, fitness: Fitness): Fitness =
     if nFitnessEvaluations == 0 || compare(fitness, bestFitness) > 0 then
       bestIndividual = copyOfIndividual(ind)
       bestFitness = fitness
@@ -20,20 +20,16 @@ trait FixedBudgetTerminator(val maxEvaluations: Long) extends SimpleFitnessFunct
     nFitnessEvaluations += 1
     if nFitnessEvaluations >= maxEvaluations then
       throw new BudgetReached(bestIndividual, bestFitness, nFitnessEvaluations)
+    fitness  
 
-  abstract override def computeFitness(ind: Individual): Fitness =
-    val result = super.computeFitness(ind)
-    validate(ind, result)
-    result
+  abstract override def computeFitness(ind: Individual): Fitness = validate(ind, super.computeFitness(ind))
 
 object FixedBudgetTerminator:
   trait Incremental extends FixedBudgetTerminator, IncrementalFitnessFunction:
     self: IndividualType & FitnessType & PatchType & FitnessComparator =>
     abstract override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness,
                                                               patch: ImmutablePatch): Fitness =
-      val result = super.computeFitnessFunctionIncrementally(individual, oldFitness, patch)
-      validate(individual, result)
-      result
+      validate(individual, super.computeFitnessFunctionIncrementally(individual, oldFitness, patch))
 
   def runUntilBudgetReached(optimizer: Optimizer)(config: optimizer.RequiredConfig & FixedBudgetTerminator): config.BudgetReached =
     try

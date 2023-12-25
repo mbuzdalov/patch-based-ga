@@ -42,7 +42,10 @@ object OneMaxEvaluationsMeasurements:
       n = 1 << nLog
       (algoName, algo) <- algorithms
     do
-      val tasks = IndexedSeq.fill(nRuns)(pool.submit(() => FixedTargetTerminator.runUntilTargetReached(algo)(Problems.incrementalOneMaxFT(n, allowDuplicates = false)).nEvaluations))
+      val tasks = IndexedSeq.fill(nRuns):
+        pool.submit: () => 
+          val om = Problems.incrementalOneMaxFT(n, allowDuplicates = false)
+          FixedTargetTerminator.runUntilTargetReached(algo)(om).nEvaluations
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)
       results.foreach(v => evaluationStats.record(v.toDouble))

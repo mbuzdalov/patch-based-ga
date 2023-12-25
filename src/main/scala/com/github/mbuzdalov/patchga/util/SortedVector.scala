@@ -1,10 +1,6 @@
 package com.github.mbuzdalov.patchga.util
 
-import java.util.Random
-
 import scala.collection.mutable.ArrayBuffer
-
-import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
 
 class SortedVector[T: Ordering]:
   private val contents = new ArrayBuffer[T]()

@@ -19,14 +19,9 @@ object BinomialDistribution:
 
   private class NaiveBinomialDistribution(n: Int, p: Double) extends IntegerDistribution:
     override def min: Int = 0
-
     override def max: Int = n
-
-    override def sample(rng: Random): Int =
-      var result = 0
-      Loops.loop(0, n)(_ => if rng.nextDouble() < p then result += 1)
-      result
-
+    override def sample(rng: Random): Int = Loops.count(0, n)(_ => rng.nextDouble() < p)
+    
   def apply(n: Int, p: Double): IntegerDistribution =
     if p < 0 || p > 1 then
       throw new IllegalArgumentException(s"p is out of bounds: $p is not in [0;1]")
