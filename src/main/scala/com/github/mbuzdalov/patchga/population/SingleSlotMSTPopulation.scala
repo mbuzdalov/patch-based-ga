@@ -2,6 +2,7 @@ package com.github.mbuzdalov.patchga.population
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
+import scala.compiletime.uninitialized
 
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
@@ -24,7 +25,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
   abstract class Node:
     private[SingleSlotMSTPopulation] var referenceCount = 1
     private val edges = new ArrayBuffer[Edge](2)
-    private var nextEdgeInPath: Edge = _
+    private var nextEdgeInPath: Edge = uninitialized
 
     def getReferenceCount: Int = referenceCount
     
@@ -79,8 +80,8 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
   private class KnownFitnessNode(val fitness: Fitness) extends Node
 
   private class LateFitnessEvaluationNode extends Node:
-    private var shortestEdge: Edge = _
-    private var computedFitness: Fitness = _
+    private var shortestEdge: Edge = uninitialized
+    private var computedFitness: Fitness = uninitialized
     override private[SingleSlotMSTPopulation] def addEdge(edge: Edge): Unit =
       super.addEdge(edge)
       if shortestEdge == null || shortestEdge.length >= edge.length then
@@ -110,7 +111,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
 
   private val masterIndividual = newRandomIndividual()
   private val masterPatch = createMutablePatch()
-  private var currentNode: Node = _
+  private var currentNode: Node = uninitialized
   private var sumPatchSizes: Long = 0
 
   def totalSizeOfPatches: Long = sumPatchSizes

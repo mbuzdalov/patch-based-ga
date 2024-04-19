@@ -30,4 +30,4 @@ object DestructiveOrderedStatistics:
         else
           data(index)
 
-    findImpl(0, data.length - 1)      
+    findImpl(0, data.length - 1)

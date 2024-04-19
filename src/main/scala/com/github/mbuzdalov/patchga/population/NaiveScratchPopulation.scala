@@ -18,5 +18,5 @@ trait NaiveScratchPopulation extends Population:
                             inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
       new FitIndividual(crossover(mainParent.individual, auxParent.individual, inDifferingBits, inSameBits))
 
-    override def fitnessH(handle: IndividualHandle): Fitness =handle.fitness
+    override def fitnessH(handle: IndividualHandle): Fitness = handle.fitness
     override def discardH(handle: IndividualHandle): Unit = ()
