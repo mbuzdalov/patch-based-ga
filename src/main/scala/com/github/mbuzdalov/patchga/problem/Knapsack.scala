@@ -17,7 +17,7 @@ trait Knapsack(val weights: IArray[Int], val values: IArray[Int], val capacity: 
 
   override def computeFitness(ind: Individual): Fitness =
     var sumWeights, sumValues = 0L
-    Loops.loop(0, weights.length): i =>
+    Loops.foreach(0, weights.length): i =>
       if ind(i) then
         sumWeights += weights(i)
         sumValues += values(i)
@@ -32,7 +32,7 @@ object Knapsack:
                                                      patch: ImmutablePatch): Fitness =
       var sumWeights = oldFitness.sumWeights
       var sumValues = oldFitness.sumValues
-      Loops.loop(0, patch.length): i =>
+      Loops.foreach(0, patch.length): i =>
         val idx = patch(i)
         if individual(idx) then
           individual(idx) = false

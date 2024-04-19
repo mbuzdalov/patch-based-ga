@@ -9,7 +9,7 @@ trait OneMax extends FitnessType, SimpleFitnessFunction, FitnessComparator:
 
   override def computeFitness(ind: Individual): Fitness =
     var result = 0
-    Loops.loop(0, ind.length)(i => if ind(i) then result += 1)
+    Loops.foreach(0, ind.length)(i => if ind(i) then result += 1)
     result
 
   override def compare(lhs: Fitness, rhs: Fitness): Int = java.lang.Integer.compare(lhs, rhs)
@@ -20,7 +20,7 @@ object OneMax:
 
     override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness, patch: ImmutablePatch): Fitness =
       var newFitness = oldFitness
-      Loops.loop(0, patch.length): i =>
+      Loops.foreach(0, patch.length): i =>
         val idx = patch(i)
         if individual(idx) then
           individual(idx) = false

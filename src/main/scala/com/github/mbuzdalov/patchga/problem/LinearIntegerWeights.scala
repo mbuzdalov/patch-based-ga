@@ -12,7 +12,7 @@ trait LinearIntegerWeights(maxWeight: Int) extends FitnessType, SimpleFitnessFun
   
   override def computeFitness(ind: Individual): Fitness =
     var result = 0L
-    Loops.loop(0, ind.length)(i => if ind(i) then result += weights(i))
+    Loops.foreach(0, ind.length)(i => if ind(i) then result += weights(i))
     result
 
   override def compare(lhs: Fitness, rhs: Fitness): Int = java.lang.Long.compare(lhs, rhs)
@@ -24,7 +24,7 @@ object LinearIntegerWeights:
 
     override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness, patch: ImmutablePatch): Fitness =
       var newFitness = oldFitness
-      Loops.loop(0, patch.length): i =>
+      Loops.foreach(0, patch.length): i =>
         val idx = patch(i)
         if individual(idx) then
           individual(idx) = false

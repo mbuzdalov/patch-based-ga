@@ -26,7 +26,7 @@ trait UnconstrainedBitString(size: Int)
     assert(size == auxParent.length)
     // First, count the number of differing bits between the parents
     var countDifferences = 0
-    Loops.loop(0, size): i =>
+    Loops.foreach(0, size): i =>
       if mainParent(i) != auxParent(i) then countDifferences += 1
 
     // Second, iterate over the differing bits again and mutate them in the result as appropriately
@@ -35,7 +35,7 @@ trait UnconstrainedBitString(size: Int)
     val result = mainParent.clone()
     if remainingInDiff > 0 || remainingInSame > 0 then
       var scannedDiff, scannedSame = 0
-      Loops.loop(0, size): i =>
+      Loops.foreach(0, size): i =>
         if mainParent(i) != auxParent(i) then
           if remainingInDiff > 0 && random.nextInt(countDifferences - scannedDiff) < remainingInDiff then
             result(i) ^= true
@@ -62,7 +62,7 @@ trait UnconstrainedBitString(size: Int)
   override def createMutablePatch(): MutableIntSet = new MutableIntSet(size)
 
   override def appendToMutablePatch(patch: MutableIntSet, toAppend: IArray[Int]): Unit =
-    Loops.loop(0, toAppend.length): i =>
+    Loops.foreach(0, toAppend.length): i =>
       val idx = toAppend(i)
       if patch.contains(idx) then
         patch.remove(idx)
@@ -77,7 +77,7 @@ trait UnconstrainedBitString(size: Int)
   override def mutablePatchSize(patch: MutableIntSet): Int = patch.size
 
   override def applyToIndividual(individual: Array[Boolean], patch: IArray[Int]): Unit =
-    Loops.loop(0, patch.length)(i => individual(patch(i)) ^= true)
+    Loops.foreach(0, patch.length)(i => individual(patch(i)) ^= true)
 
   override def initializeMutablePatchFromDistance(patch: MutableIntSet, distance: Int): Unit =
     patch.clear()
@@ -85,7 +85,7 @@ trait UnconstrainedBitString(size: Int)
 
   override def initializeMutablePatchFromTwoIndividuals(patch: MutableIntSet, source: Array[Boolean], target: Array[Boolean]): Unit =
     patch.clear()
-    Loops.loop(0, size)(i => if source(i) != target(i) then patch.add(i))
+    Loops.foreach(0, size)(i => if source(i) != target(i) then patch.add(i))
 
   override def applyCrossoverRequest(patch: MutablePatch, nRemove: Int, nAdd: Int): Unit =
     patch.groupAddRemove(nRemove, nAdd, random)
@@ -98,7 +98,7 @@ trait UnconstrainedBitString(size: Int)
       individual
     else if size - current <= remaining then
       // All remaining bits need to be flipped. Can be done in a simple way too.
-      Loops.loop(current, size)(i => individual(i) ^= true)
+      Loops.foreach(current, size)(i => individual(i) ^= true)
       individual
     else if random.nextInt(size - current) < remaining then
       // With probability remaining / (size - current), the current bit needs to be flipped.

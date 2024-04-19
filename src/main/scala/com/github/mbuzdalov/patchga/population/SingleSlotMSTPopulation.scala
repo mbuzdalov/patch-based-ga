@@ -41,7 +41,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
     private[SingleSlotMSTPopulation] def getEdgeInPath: Edge = nextEdgeInPath
     private[SingleSlotMSTPopulation] def clearEdgeInPath(): Unit = nextEdgeInPath = null
     private[SingleSlotMSTPopulation] inline def iterateOverEdges(parent: Node)(inline fun: Edge => Unit): Unit =
-      Loops.loop(0, edges.size): i =>
+      Loops.foreach(0, edges.size): i =>
         val edge = edges(i)
         if edge.target != parent then fun(edge)
 
@@ -49,7 +49,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
       nextEdgeInPath = null
       val oldEdges = edges.toArray
       edges.clear()
-      Loops.loop(0, oldEdges.length): i =>
+      Loops.foreach(0, oldEdges.length): i =>
         val edge = oldEdges(i)
         if edge.target != parent then
           sumPatchSizes -= edge.length

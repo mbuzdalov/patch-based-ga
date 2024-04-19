@@ -32,7 +32,7 @@ class DistributionTests extends AnyFlatSpec with Matchers:
   private def testPowerLaw(n: Int, beta: Double): Unit =
     val probabilities = Array.tabulate(n)(i => math.pow(i + 1, -beta))
     val sum = probabilities.sum
-    Loops.loop(0, n)(i => probabilities(i) /= sum)
+    Loops.foreach(0, n)(i => probabilities(i) /= sum)
     val counts = new Array[Int](n)
     val distribution = PowerLawDistribution(n, beta)
     distribution.min shouldBe 1
@@ -41,7 +41,7 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     val size = 10000000
     Loops.repeat(size):
       counts(distribution.sample(rng) - 1) += 1
-    Loops.loop(0, n): i => 
+    Loops.foreach(0, n): i => 
       counts(i).toDouble / size shouldBe probabilities(i) +- math.max(0.1 * probabilities(i), 5e-6)
 
   "ConstantDistribution.zero" should "produce zeros" in testConstant(ConstantDistribution.zero, 0)

@@ -26,7 +26,7 @@ object KnapsackDiversityMeasurements:
 
     Using.resource(new PrintWriter("diversity-correlations.csv")): out =>
       out.println("evaluations,avg-time,avg-patch-size")
-      Loops.loop(0, 110): t =>
+      Loops.foreach(0, 110): t =>
         val instance = newKnapsack()
         FixedBudgetTerminator.runUntilBudgetReached(optimizer)(instance)
         if t >= 10 then

@@ -7,7 +7,7 @@ object Loops:
       function
       idx += 1
   
-  inline def loop(from: Int, until: Int)(inline function: Int => Any): Unit =
+  inline def foreach(from: Int, until: Int)(inline function: Int => Any): Unit =
     var idx = from
     while idx < until do
       function(idx)

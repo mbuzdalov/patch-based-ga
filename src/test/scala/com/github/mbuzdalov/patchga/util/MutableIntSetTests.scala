@@ -13,7 +13,7 @@ class MutableIntSetTests extends AnyFlatSpec with Matchers:
     val random = new Random(32234324)
 
     for _ <- 0 until 1000000 do
-      Loops.loop(0, n)(i => mutableIntSet.contains(i) shouldBe referenceSet.contains(i))
+      Loops.foreach(0, n)(i => mutableIntSet.contains(i) shouldBe referenceSet.contains(i))
       random.nextInt(3) match
         case 0 =>
           val idx = random.nextInt(20)
