@@ -18,7 +18,7 @@ object KnapsackQualityMeasurements:
   private def algorithmList(name: String): Seq[(String, OptimizerType)] =
     name match
       case "default" => Seq(
-        "RLS" -> RandomizedLocalSearch,
+        "RLS" -> OnePlusOneEA.randomizedLocalSearch,
         "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
         "(1+1) hEA" -> new OnePlusOneEA(n => PowerLawDistribution(n, 1.5)),
         "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 4.0 / n))),

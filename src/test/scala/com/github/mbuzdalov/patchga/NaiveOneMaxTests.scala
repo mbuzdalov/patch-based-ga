@@ -31,7 +31,7 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
 
   "RLS on OneMax" should "work well with naive population" in
     simpleTest(n => n * math.log(n))
-              (RandomizedLocalSearch)
+              (OnePlusOneEA.randomizedLocalSearch)
               (n => Problems.naiveOneMaxFT(n))
 
   "(1+1) EA on OneMax" should "work well with naive population" in

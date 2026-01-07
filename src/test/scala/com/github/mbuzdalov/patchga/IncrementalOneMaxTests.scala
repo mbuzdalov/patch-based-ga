@@ -31,7 +31,7 @@ class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
 
   "RLS on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(n => n * math.log(n))
-              (RandomizedLocalSearch)
+              (OnePlusOneEA.randomizedLocalSearch)
               (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true))
 
   "(1+1) EA on OneMax" should "work well with single-slot MST-based population" in

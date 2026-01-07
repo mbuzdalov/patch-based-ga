@@ -42,7 +42,7 @@ object OneMaxWallClockTimeMeasurements:
 
     Loops.repeat(20):
       val result = algo match
-        case "RLS" => run(RandomizedLocalSearch)(newProblem())
+        case "RLS" => run(OnePlusOneEA.randomizedLocalSearch)(newProblem())
         case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
         case "(2+1)" => run(twoPlusOneGA)(newProblem())
         case "(10+1)" => run(tenPlusOneGA)(newProblem())

@@ -17,7 +17,7 @@ object LeadingOnesEvaluationsMeasurements:
   private def algorithmList(name: String): Seq[(String, OptimizerType)] =
     name match
       case "default" => Seq(
-        "RLS" -> RandomizedLocalSearch,
+        "RLS" -> OnePlusOneEA.randomizedLocalSearch,
         "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
         "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 0.004 / n))),
         "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 0.001 / n))),
