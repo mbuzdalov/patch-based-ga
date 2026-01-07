@@ -39,7 +39,7 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
               (OnePlusOneEA.withStandardBitMutation)
               (n => Problems.naiveOneMaxFT(n))
 
-  // constants for (2+1) GA are taken from https://link.springer.com/article/10.1007/s00453-021-00893-w
+  // Constants for (2+1) GA are taken from https://link.springer.com/article/10.1007/s00453-021-00893-w.
 
   "(2+1) GA on OneMax" should "work well with naive population using c=1" in
     simpleTest(n => 2.224 * n * math.log(n))
@@ -51,8 +51,8 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
               (new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.2122 / n)))
               (n => Problems.naiveOneMaxFT(n))
 
-  // constants for (10+1) GA are taken from https://link.springer.com/article/10.1007/s00453-020-00743-1
-  // but they underestimate the runtime for the used problem sizes
+  // Constants for (10+1) GA are taken from https://link.springer.com/article/10.1007/s00453-020-00743-1,
+  // but they underestimate the runtime for the used problem sizes.
 
   "(10+1) GA on OneMax" should "work well with naive population" in
     simpleTest(n => 1.75 * n * math.log(n))
