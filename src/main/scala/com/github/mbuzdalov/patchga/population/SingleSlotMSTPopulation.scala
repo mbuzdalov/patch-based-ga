@@ -234,11 +234,14 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
                 false
     if aliveChildren == 0 && curr.referenceCount == 0 then -1 else myPendingEdge
 
-  def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
+  private def prepareCollection(base: IndividualHandle): Unit =
     assert(base.referenceCount > 0)
     buildPathToNode(null, currentNode, base)
     rewindMasterIndividualByPath()
     clearMutablePatch(masterPatch)
+
+  def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
+    prepareCollection(base)
     collectDistanceToHandlesImpl(null, currentNode, consumer)
 
   private def collectDistanceToHandlesImpl(parent: Node, curr: Node, function: (IndividualHandle, Int) => Unit): Unit =
@@ -248,19 +251,16 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
       collectDistanceToHandlesImpl(curr, edge.target, function)
       appendToMutablePatch(masterPatch, edge.reverse.patch)
 
-  def collectHandlesAtDistance(base: IndividualHandle, distance: Int, buffer: ArrayBuffer[IndividualHandle]): Unit =
-    assert(base.referenceCount > 0)
-    buildPathToNode(null, currentNode, base)
-    rewindMasterIndividualByPath()
-    clearMutablePatch(masterPatch)
+  def collectHandlesAtDistance(base: IndividualHandle, distancePredicate: Int => Boolean, buffer: ArrayBuffer[IndividualHandle]): Unit =
+    prepareCollection(base)
     buffer.clear()
-    collectHandlesAtDistanceImpl(null, currentNode, distance, buffer)
+    collectHandlesAtDistanceImpl(null, currentNode, distancePredicate, buffer)
 
-  private def collectHandlesAtDistanceImpl(parent: Node, curr: Node, distance: Int, buffer: ArrayBuffer[Node]): Unit =
-    if curr.referenceCount > 0 && mutablePatchSize(masterPatch) == distance then buffer.addOne(curr)
+  private def collectHandlesAtDistanceImpl(parent: Node, curr: Node, distancePredicate: Int => Boolean, buffer: ArrayBuffer[Node]): Unit =
+    if curr.referenceCount > 0 && distancePredicate(mutablePatchSize(masterPatch)) then buffer.addOne(curr)
     curr.iterateOverEdges(parent): edge =>
       appendToMutablePatch(masterPatch, edge.patch)
-      collectHandlesAtDistanceImpl(curr, edge.target, distance, buffer)
+      collectHandlesAtDistanceImpl(curr, edge.target, distancePredicate, buffer)
       appendToMutablePatch(masterPatch, edge.reverse.patch)
 
   private def buildPathToNode(parent: Node, curr: Node, target: Node): Boolean =
