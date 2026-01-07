@@ -44,7 +44,7 @@ object LeadingOnesEvaluationsMeasurements:
     do
       val tasks = IndexedSeq.fill(nRuns): 
         pool.submit: () => 
-          val lo = Problems.incrementalLeadingOnesFT(n, allowDuplicates = false)
+          val lo = Problems.incrementalLeadingOnesFT(n, allowDuplicates = false, disableDiscard = true)
           FixedTargetTerminator.runUntilTargetReached(algo)(lo).nEvaluations
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)

@@ -45,7 +45,7 @@ object LinearEvaluationsMeasurements:
     do
       val tasks = IndexedSeq.fill(nRuns):
         pool.submit: () => 
-          val lin = Problems.incrementalLinearFT(n, maxWeight, allowDuplicates = false)
+          val lin = Problems.incrementalLinearFT(n, maxWeight, allowDuplicates = false, disableDiscard = true)
           FixedTargetTerminator.runUntilTargetReached(algo)(lin).nEvaluations
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)

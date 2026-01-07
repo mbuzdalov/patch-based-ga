@@ -38,7 +38,7 @@ object OneMaxWallClockTimeMeasurements:
 
     def newProblem() = flavour match
       case "naive" => Problems.naiveOneMaxFT(n)
-      case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false)
+      case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false, disableDiscard = false)
 
     Loops.repeat(20):
       val result = algo match

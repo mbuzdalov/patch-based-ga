@@ -7,7 +7,7 @@ import scala.compiletime.uninitialized
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
 
-trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
+trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean) extends Population:
   self: IndividualType & FitnessType & PatchType & MaximumPatchSize & NewRandomIndividual 
     & SimpleFitnessFunction & IncrementalFitnessFunction & RandomProvider =>
 
@@ -119,9 +119,10 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean) extends Population:
   override def fitnessH(handle: IndividualHandle): Fitness = handle.fitness
 
   override def discardH(handle: IndividualHandle): Unit =
-    handle.referenceCount -= 1
-    if handle.referenceCount == 0 then
-      handle.tryDisconnect()
+    if !disableDiscard then
+      handle.referenceCount -= 1
+      if handle.referenceCount == 0 then
+        handle.tryDisconnect()
 
   override def newRandomIndividualH(): IndividualHandle =
     if currentNode == null then

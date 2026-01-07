@@ -47,7 +47,7 @@ object KnapsackQualityMeasurements:
           val rng = new Random(134235253 * (i + 132))
           val weights, values = IArray.fill(n)(10000 + rng.nextInt(10000))
           val capacity = weights.sum / 2
-          val problem = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = false)
+          val problem = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true, disableDiscard = false)
           val rawFitness = FixedBudgetTerminator.runUntilBudgetReached(algo)(problem).fitness
           if rawFitness.isValid then rawFitness.sumValues else 0
       val results = tasks.map(_.get()).sorted

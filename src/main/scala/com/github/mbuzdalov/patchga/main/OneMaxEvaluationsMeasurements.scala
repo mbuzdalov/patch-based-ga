@@ -44,7 +44,7 @@ object OneMaxEvaluationsMeasurements:
     do
       val tasks = IndexedSeq.fill(nRuns):
         pool.submit: () => 
-          val om = Problems.incrementalOneMaxFT(n, allowDuplicates = false)
+          val om = Problems.incrementalOneMaxFT(n, allowDuplicates = false, disableDiscard = true)
           FixedTargetTerminator.runUntilTargetReached(algo)(om).nEvaluations
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)

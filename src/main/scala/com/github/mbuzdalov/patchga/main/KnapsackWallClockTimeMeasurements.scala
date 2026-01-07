@@ -48,7 +48,7 @@ object KnapsackWallClockTimeMeasurements:
 
     def incremental() =
       val weights, values = randomArray()
-      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget, allowDuplicates = true)
+      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget, allowDuplicates = true, disableDiscard = false)
 
     def newProblem() = flavour match
       case "naive" => naive()

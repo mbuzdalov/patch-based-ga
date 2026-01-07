@@ -22,7 +22,7 @@ object KnapsackDiversityMeasurements:
     val capacity = weights.sum / 2
 
     val optimizer = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
-    def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true)
+    def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true, disableDiscard = false)
 
     Using.resource(new PrintWriter("diversity-correlations.csv")): out =>
       out.println("evaluations,avg-time,avg-patch-size")
