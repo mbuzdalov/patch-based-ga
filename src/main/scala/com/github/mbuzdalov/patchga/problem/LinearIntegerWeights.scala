@@ -3,11 +3,15 @@ package com.github.mbuzdalov.patchga.problem
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.Loops
 
-trait LinearIntegerWeights(maxWeight: Int) extends FitnessType, SimpleFitnessFunction, FitnessComparator:
-  self: IndividualType { type Individual <: Array[Boolean] } & RandomProvider & MaximumPatchSize =>
+import java.util.Random
+
+trait LinearIntegerWeights(maxWeight: Int, weightSeed: Long) extends FitnessType, SimpleFitnessFunction, FitnessComparator:
+  self: IndividualType { type Individual <: Array[Boolean] } & MaximumPatchSize =>
   override type Fitness = Long
 
-  protected val weights: IArray[Int] = IArray.fill(maximumPatchSize)(1 + random.nextInt(maxWeight)) 
+  protected val weights: IArray[Int] = locally:
+    val weightRandom = new Random(weightSeed)
+    IArray.fill(maximumPatchSize)(1 + weightRandom.nextInt(maxWeight)) 
   protected val sumWeights: Long = weights.map(_.toLong).sum
   
   override def computeFitness(ind: Individual): Fitness =
@@ -19,8 +23,9 @@ trait LinearIntegerWeights(maxWeight: Int) extends FitnessType, SimpleFitnessFun
 
 object LinearIntegerWeights:
   trait Incremental extends LinearIntegerWeights, IncrementalFitnessFunction:
-    self: IndividualType { type Individual <: Array[Boolean] } & PatchType { type ImmutablePatch <: IArray[Int] } 
-      & RandomProvider & MaximumPatchSize =>
+    self: IndividualType { type Individual <: Array[Boolean] } 
+      & PatchType { type ImmutablePatch <: IArray[Int] } 
+      & MaximumPatchSize =>
 
     override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness, patch: ImmutablePatch): Fitness =
       var newFitness = oldFitness

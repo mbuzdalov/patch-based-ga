@@ -29,12 +29,12 @@ object LinearEvaluationsMeasurements:
         s"(10+1) EA [$c]" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, c / n)))
 
   def main(args: Array[String]): Unit =
-    val minLogN = args(0).toInt
-    val maxLogN = args(1).toInt
-    val nRuns = args(2).toInt
-    val nProcessors = args(3).toInt
-    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(4).getOrElse("default"))
-    val maxWeight = 5
+    val maxWeight = args(0).toInt
+    val minLogN = args(1).toInt
+    val maxLogN = args(2).toInt
+    val nRuns = args(3).toInt
+    val nProcessors = args(4).toInt
+    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(5).getOrElse("default"))
 
     val pool = new ScheduledThreadPoolExecutor(if nProcessors <= 0 then Runtime.getRuntime.availableProcessors() else nProcessors)
 
@@ -43,9 +43,9 @@ object LinearEvaluationsMeasurements:
       n = 1 << nLog
       (algoName, algo) <- algorithms
     do
-      val tasks = IndexedSeq.fill(nRuns):
+      val tasks = IndexedSeq.tabulate(nRuns): i =>
         pool.submit: () => 
-          val lin = Problems.incrementalLinearFT(n, maxWeight, allowDuplicates = false, disableDiscard = true)
+          val lin = Problems.incrementalLinearFT(n, maxWeight, 31 * i + 3635263, allowDuplicates = false, disableDiscard = true)
           FixedTargetTerminator.runUntilTargetReached(algo)(lin).nEvaluations
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)
