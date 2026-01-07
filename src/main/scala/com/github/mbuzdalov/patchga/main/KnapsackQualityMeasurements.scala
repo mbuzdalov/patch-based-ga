@@ -25,7 +25,7 @@ object KnapsackQualityMeasurements:
         "(2+1) hGA" -> new MuPlusOneGA(2, 1, n => PowerLawDistribution(n, 1.5)),
         "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 4.0 / n))),
         "(10+1) hGA" -> new MuPlusOneGA(10, 1, n => PowerLawDistribution(n, 1.5)),
-        "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 1.5),
+        "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 2.5),
       )
       case "(2+1)" => for cc <- 8 to 15; c = (1 << cc) * 0.001 yield
         s"(2+1) EA [$c]" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, c / n)))
