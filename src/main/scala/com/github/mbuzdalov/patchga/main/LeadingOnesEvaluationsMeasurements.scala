@@ -1,13 +1,13 @@
 package com.github.mbuzdalov.patchga.main
 
-import java.util.concurrent.ScheduledThreadPoolExecutor
-
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.MeanAndStandardDeviation
+
+import java.util.concurrent.ScheduledThreadPoolExecutor
 
 object LeadingOnesEvaluationsMeasurements:
   private type OptimizerType = Optimizer {
