@@ -7,6 +7,6 @@ trait Optimizer:
   def optimize(config: RequiredConfig): Nothing
 
 object Optimizer:
+  type MinimalRequirements = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider 
   type Any = Optimizer:
-    type RequiredConfig >: FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
-  
+    type RequiredConfig >: MinimalRequirements
