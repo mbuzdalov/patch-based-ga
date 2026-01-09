@@ -9,11 +9,7 @@ import com.github.mbuzdalov.patchga.util.MeanAndStandardDeviation
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 object LinearEvaluationsMeasurements:
-  private type OptimizerType = Optimizer {
-    type RequiredConfig >: Problems.LinearFT
-  }
-
-  private def algorithmList(name: String): Seq[(String, OptimizerType)] =
+  private def algorithmList(name: String): Seq[(String, Optimizer.Any)] =
     name match
       case "default" => Seq(
         "RLS" -> OnePlusOneEA.randomizedLocalSearch,
@@ -34,7 +30,7 @@ object LinearEvaluationsMeasurements:
     val maxLogN = args(2).toInt
     val nRuns = args(3).toInt
     val nProcessors = args(4).toInt
-    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(5).getOrElse("default"))
+    val algorithms = algorithmList(args.lift.apply(5).getOrElse("default"))
 
     val pool = new ScheduledThreadPoolExecutor(if nProcessors <= 0 then Runtime.getRuntime.availableProcessors() else nProcessors)
 

@@ -10,11 +10,7 @@ import java.util.Random
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 object KnapsackQualityMeasurements:
-  private type OptimizerType = Optimizer {
-    type RequiredConfig >: Problems.KnapsackFB
-  }
-
-  private def algorithmList(name: String): Seq[(String, OptimizerType)] =
+  private def algorithmList(name: String): Seq[(String, Optimizer.Any)] =
     name match
       case "default" => Seq(
         "RLS" -> OnePlusOneEA.randomizedLocalSearch,
@@ -36,7 +32,7 @@ object KnapsackQualityMeasurements:
     val budget = args(1).toInt
     val nRuns = args(2).toInt
     val nProcessors = args(3).toInt
-    val algorithms: Seq[(String, OptimizerType)] = algorithmList(args.lift.apply(4).getOrElse("default"))
+    val algorithms = algorithmList(args.lift.apply(4).getOrElse("default"))
 
     val pool = new ScheduledThreadPoolExecutor(if nProcessors <= 0 then Runtime.getRuntime.availableProcessors() else nProcessors)
 
