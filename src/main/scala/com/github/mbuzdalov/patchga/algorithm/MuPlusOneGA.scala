@@ -11,7 +11,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
 
   override def optimize(config: RequiredConfig): Nothing =
-    import config._
+    import config.*
 
     // Preparation
     val mutationOperator = mutationDistributionSource(maximumPatchSize)

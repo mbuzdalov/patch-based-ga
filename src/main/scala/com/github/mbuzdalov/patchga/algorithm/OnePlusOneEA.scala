@@ -7,8 +7,8 @@ import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, Constant
 class OnePlusOneEA(distributionSource: Int => IntegerDistribution) extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
 
-  def optimize(conf: RequiredConfig): Nothing =
-    import conf._
+  def optimize(config: RequiredConfig): Nothing =
+    import config.*
     val distribution = distributionSource(maximumPatchSize)
 
     @tailrec
