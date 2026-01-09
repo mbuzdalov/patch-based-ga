@@ -4,25 +4,33 @@ import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.infra.*
 import com.github.mbuzdalov.patchga.population.*
 import com.github.mbuzdalov.patchga.problem
-import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
+import com.github.mbuzdalov.patchga.representation.{CompressedBitString, UnconstrainedBitString}
 
 object Problems:
-  type OneMaxFT = UnconstrainedBitString & OneMax & Population & ThreadLocalRandomProvider & FixedTargetTerminator
+  type OneMaxFT = UnconstrainedBitString & OneMax.BasicArray & Population & ThreadLocalRandomProvider & FixedTargetTerminator
+  type CompOneMaxFT = CompressedBitString & OneMax.Compressed & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
   def naiveOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): OneMaxFT =
     new UnconstrainedBitString(size)
-      with OneMax
+      with OneMax.BasicArray
       with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
 
   def incrementalOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): OneMaxFT =
     new UnconstrainedBitString(size)
-      with OneMax with OneMax.Incremental
+      with OneMax.BasicArray with OneMax.BasicArrayIncremental
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
       override def targetFitness: Fitness = size
 
+  def compressedOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): CompOneMaxFT =
+    new CompressedBitString(size)
+      with OneMax.Compressed
+      with NaiveScratchPopulation(allowDuplicates, disableDiscard)
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
+      override def targetFitness: Fitness = size
+  
   type LinearFT = UnconstrainedBitString & LinearIntegerWeights & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
   def naiveLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): LinearFT =
