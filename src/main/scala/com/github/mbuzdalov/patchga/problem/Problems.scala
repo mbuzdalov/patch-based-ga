@@ -25,16 +25,16 @@ object Problems:
 
   type LinearFT = UnconstrainedBitString & LinearIntegerWeights & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
-  def naiveLinearFT(size: Int, maxWeight: Int, weightSeed: Long): LinearFT =
+  def naiveLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long): LinearFT =
     new UnconstrainedBitString(size) 
-      with LinearIntegerWeights(maxWeight, weightSeed) 
+      with LinearIntegerWeights(weightCounts, weightSeed) 
       with NaiveScratchPopulation 
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = sumWeights
 
-  def incrementalLinearFT(size: Int, maxWeight: Int, weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): LinearFT & SingleSlotMSTPopulation =
+  def incrementalLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): LinearFT & SingleSlotMSTPopulation =
     new UnconstrainedBitString(size)
-      with LinearIntegerWeights(maxWeight, weightSeed) with LinearIntegerWeights.Incremental 
+      with LinearIntegerWeights(weightCounts, weightSeed) with LinearIntegerWeights.Incremental 
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard) 
       with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
       override def targetFitness: Fitness = sumWeights

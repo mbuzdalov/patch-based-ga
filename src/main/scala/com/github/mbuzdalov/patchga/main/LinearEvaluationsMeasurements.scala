@@ -29,7 +29,8 @@ object LinearEvaluationsMeasurements:
         s"(10+1) EA [$c]" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, c / n)))
 
   def main(args: Array[String]): Unit =
-    val maxWeight = args(0).toInt
+    val weightRates = args(0).split(',').map(_.toDouble)
+    assert(math.abs(weightRates.sum - 1) < 1e-9, "Weight rates should sum up to 1")
     val minLogN = args(1).toInt
     val maxLogN = args(2).toInt
     val nRuns = args(3).toInt
@@ -43,15 +44,21 @@ object LinearEvaluationsMeasurements:
       n = 1 << nLog
       (algoName, algo) <- algorithms
     do
+      // generate weights
+      val weights0 = weightRates.map(v => (v * n).toInt)
+      weights0(weights0.length - 1) += n - weights0.sum
+      val weights = IArray.unsafeFromArray(weights0)
+      // generate and execute tasks
       val tasks = IndexedSeq.tabulate(nRuns): i =>
         pool.submit: () => 
-          val lin = Problems.incrementalLinearFT(n, maxWeight, 31 * i + 3635263, allowDuplicates = false, disableDiscard = true)
+          val lin = Problems.incrementalLinearFT(n, weights, 31 * i + 3635263, allowDuplicates = false, disableDiscard = true)
           FixedTargetTerminator.runUntilTargetReached(algo)(lin).nEvaluations
+      // compute and print the statistics
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)
       results.foreach(v => evaluationStats.record(v.toDouble))
       val median = results(nRuns / 2)
-      println(s"$n, $algoName:")
+      println(s"$n = ${weights.mkString("[", ", ", "]")}, $algoName:")
       println(s"  median $median, mean ${evaluationStats.mean}, stddev ${evaluationStats.stdDev}")
       println(results.mkString("  runs: ", ",", ""))
 

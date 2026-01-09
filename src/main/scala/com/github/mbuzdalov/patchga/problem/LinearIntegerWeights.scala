@@ -5,14 +5,31 @@ import com.github.mbuzdalov.patchga.util.Loops
 
 import java.util.Random
 
-trait LinearIntegerWeights(maxWeight: Int, weightSeed: Long) extends FitnessType, SimpleFitnessFunction, FitnessComparator:
+trait LinearIntegerWeights(weightCounts: IArray[Int], weightSeed: Long) extends FitnessType, SimpleFitnessFunction, FitnessComparator:
   self: IndividualType { type Individual <: Array[Boolean] } & MaximumPatchSize =>
   override type Fitness = Long
 
   protected val weights: IArray[Int] = locally:
     val weightRandom = new Random(weightSeed)
-    IArray.fill(maximumPatchSize)(1 + weightRandom.nextInt(maxWeight)) 
-  protected val sumWeights: Long = weights.map(_.toLong).sum
+    val weightsTemp = new Array[Int](weightCounts.sum)
+    // generate all weights in sequence
+    var prefix = 0
+    Loops.foreach(0, weightCounts.length): w =>
+      java.util.Arrays.fill(weightsTemp, prefix, prefix + weightCounts(w), w)
+      prefix += weightCounts(w)
+    // shuffle the weights  
+    Loops.foreach(1, weightsTemp.length): i =>
+      val j = weightRandom.nextInt(i + 1)
+      val tmp = weightsTemp(i)
+      weightsTemp(i) = weightsTemp(j)
+      weightsTemp(j) = tmp
+    // store then in an immutable array  
+    IArray.unsafeFromArray(weightsTemp) 
+
+  protected val sumWeights: Long = locally:
+    var result = 0L
+    Loops.foreach(0, weights.length)(i => result += weights(i))
+    result
   
   override def computeFitness(ind: Individual): Fitness =
     var result = 0L
