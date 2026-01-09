@@ -1,18 +1,17 @@
 package com.github.mbuzdalov.patchga.main
 
-import java.util.Random
-import java.util.concurrent.ScheduledThreadPoolExecutor
-
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
-import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.MeanAndStandardDeviation
 
+import java.util.Random
+import java.util.concurrent.ScheduledThreadPoolExecutor
+
 object KnapsackQualityMeasurements:
   private type OptimizerType = Optimizer {
-    type RequiredConfig >: Problems.KnapsackFB & SingleSlotMSTPopulation
+    type RequiredConfig >: Problems.KnapsackFB
   }
 
   private def algorithmList(name: String): Seq[(String, OptimizerType)] =

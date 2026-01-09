@@ -10,48 +10,48 @@ object Problems:
   type OneMaxFT = UnconstrainedBitString & OneMax & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
   def naiveOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): OneMaxFT =
-    new UnconstrainedBitString(size) 
-      with OneMax 
+    new UnconstrainedBitString(size)
+      with OneMax
       with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
 
-  def incrementalOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): OneMaxFT & SingleSlotMSTPopulation =
-    new UnconstrainedBitString(size) 
-      with OneMax with OneMax.Incremental 
-      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard) 
+  def incrementalOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): OneMaxFT =
+    new UnconstrainedBitString(size)
+      with OneMax with OneMax.Incremental
+      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
       override def targetFitness: Fitness = size
 
   type LinearFT = UnconstrainedBitString & LinearIntegerWeights & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
   def naiveLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): LinearFT =
-    new UnconstrainedBitString(size) 
-      with LinearIntegerWeights(weightCounts, weightSeed) 
-      with NaiveScratchPopulation(allowDuplicates, disableDiscard) 
+    new UnconstrainedBitString(size)
+      with LinearIntegerWeights(weightCounts, weightSeed)
+      with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = sumWeights
 
-  def incrementalLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): LinearFT & SingleSlotMSTPopulation =
+  def incrementalLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): LinearFT =
     new UnconstrainedBitString(size)
-      with LinearIntegerWeights(weightCounts, weightSeed) with LinearIntegerWeights.Incremental 
-      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard) 
+      with LinearIntegerWeights(weightCounts, weightSeed) with LinearIntegerWeights.Incremental
+      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
       override def targetFitness: Fitness = sumWeights
 
   type LeadingOnesFT = UnconstrainedBitString & LeadingOnes & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
   def naiveLeadingOnesFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): LeadingOnesFT =
-    new UnconstrainedBitString(size) 
-      with LeadingOnes 
+    new UnconstrainedBitString(size)
+      with LeadingOnes
       with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
 
-  def incrementalLeadingOnesFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): LeadingOnesFT & SingleSlotMSTPopulation =
-    new UnconstrainedBitString(size) 
-      with LeadingOnes with LeadingOnes.Incremental 
-      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard) 
+  def incrementalLeadingOnesFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): LeadingOnesFT =
+    new UnconstrainedBitString(size)
+      with LeadingOnes with LeadingOnes.Incremental
+      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
       override def targetFitness: Fitness = size
 
@@ -59,15 +59,15 @@ object Problems:
 
   def naiveKnapsackFB(weights: IArray[Int], values: IArray[Int],
                       capacity: Int, budget: Int, allowDuplicates: Boolean, disableDiscard: Boolean): KnapsackFB =
-    new UnconstrainedBitString(weights.length) 
-      with Knapsack(weights, values, capacity) 
+    new UnconstrainedBitString(weights.length)
+      with Knapsack(weights, values, capacity)
       with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedBudgetTerminator(budget)
 
   def incrementalKnapsackFB(weights: IArray[Int], values: IArray[Int], 
-                            capacity: Int, budget: Int, allowDuplicates: Boolean, disableDiscard: Boolean): KnapsackFB & SingleSlotMSTPopulation & TimePatchBudgetCorrelation =
-    new UnconstrainedBitString(weights.length) 
+                            capacity: Int, budget: Int, allowDuplicates: Boolean, disableDiscard: Boolean): KnapsackFB & TimePatchBudgetCorrelation =
+    new UnconstrainedBitString(weights.length)
       with Knapsack(weights, values, capacity) with Knapsack.Incremental
-      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard) 
+      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedBudgetTerminator(budget) with FixedBudgetTerminator.Incremental
       with TimePatchBudgetCorrelation(10)
