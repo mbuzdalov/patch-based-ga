@@ -37,7 +37,7 @@ object OneMaxWallClockTimeMeasurements:
     if !compactOutput then println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
-      case "naive" => Problems.naiveOneMaxFT(n)
+      case "naive" => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false)
       case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false, disableDiscard = false)
 
     Loops.repeat(20):

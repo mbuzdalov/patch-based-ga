@@ -9,10 +9,10 @@ import com.github.mbuzdalov.patchga.representation.UnconstrainedBitString
 object Problems:
   type OneMaxFT = UnconstrainedBitString & OneMax & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
-  def naiveOneMaxFT(size: Int): OneMaxFT =
+  def naiveOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): OneMaxFT =
     new UnconstrainedBitString(size) 
       with OneMax 
-      with NaiveScratchPopulation 
+      with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
 
@@ -25,10 +25,10 @@ object Problems:
 
   type LinearFT = UnconstrainedBitString & LinearIntegerWeights & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
-  def naiveLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long): LinearFT =
+  def naiveLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): LinearFT =
     new UnconstrainedBitString(size) 
       with LinearIntegerWeights(weightCounts, weightSeed) 
-      with NaiveScratchPopulation 
+      with NaiveScratchPopulation(allowDuplicates, disableDiscard) 
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = sumWeights
 
@@ -41,10 +41,10 @@ object Problems:
 
   type LeadingOnesFT = UnconstrainedBitString & LeadingOnes & Population & ThreadLocalRandomProvider & FixedTargetTerminator
 
-  def naiveLeadingOnesFT(size: Int): LeadingOnesFT =
+  def naiveLeadingOnesFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): LeadingOnesFT =
     new UnconstrainedBitString(size) 
       with LeadingOnes 
-      with NaiveScratchPopulation 
+      with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
 
@@ -57,10 +57,11 @@ object Problems:
 
   type KnapsackFB = UnconstrainedBitString & Knapsack & Population & ThreadLocalRandomProvider & FixedBudgetTerminator
 
-  def naiveKnapsackFB(weights: IArray[Int], values: IArray[Int], capacity: Int, budget: Int): KnapsackFB =
+  def naiveKnapsackFB(weights: IArray[Int], values: IArray[Int],
+                      capacity: Int, budget: Int, allowDuplicates: Boolean, disableDiscard: Boolean): KnapsackFB =
     new UnconstrainedBitString(weights.length) 
       with Knapsack(weights, values, capacity) 
-      with NaiveScratchPopulation
+      with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedBudgetTerminator(budget)
 
   def incrementalKnapsackFB(weights: IArray[Int], values: IArray[Int], 

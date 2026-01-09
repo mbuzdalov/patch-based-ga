@@ -240,7 +240,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     rewindMasterIndividualByPath()
     clearMutablePatch(masterPatch)
 
-  def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
+  override def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
     prepareCollection(base)
     collectDistanceToHandlesImpl(null, currentNode, consumer)
 
@@ -251,7 +251,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
       collectDistanceToHandlesImpl(curr, edge.target, function)
       appendToMutablePatch(masterPatch, edge.reverse.patch)
 
-  def collectHandlesAtDistance(base: IndividualHandle, distancePredicate: Int => Boolean, buffer: ArrayBuffer[IndividualHandle]): Unit =
+  override def collectHandlesAtDistance(base: IndividualHandle, distancePredicate: Int => Boolean, buffer: ArrayBuffer[IndividualHandle]): Unit =
     prepareCollection(base)
     buffer.clear()
     collectHandlesAtDistanceImpl(null, currentNode, distancePredicate, buffer)
