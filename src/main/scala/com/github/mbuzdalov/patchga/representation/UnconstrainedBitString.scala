@@ -6,7 +6,8 @@ import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.{Loops, MutableIntSet}
 
 trait UnconstrainedBitString(size: Int)
-  extends IndividualType, MaximumPatchSize, PatchType, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:
+  extends IndividualType, MaximumPatchSize, PatchType, SimpleMutationOperator, SimpleCrossoverOperator,
+    IndividualDistance, NewRandomIndividual:
   self: RandomProvider =>
   override type Individual = Array[Boolean]
   override type MutablePatch = MutableIntSet
@@ -15,7 +16,10 @@ trait UnconstrainedBitString(size: Int)
   override def maximumPatchSize: Int = size
 
   override def copyOfIndividual(ind: Individual): Individual = ind.clone()
-
+  
+  override def distance(lhs: Individual, rhs: Individual): Int =
+    Loops.count(0, lhs.length)(i => lhs(i) != rhs(i))
+  
   override def mutate(individual: Individual, distance: Int): Individual =
     assert(size == individual.length)
     mutateImpl(individual.clone(), 0, distance)
