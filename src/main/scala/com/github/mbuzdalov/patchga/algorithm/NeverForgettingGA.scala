@@ -2,7 +2,6 @@ package com.github.mbuzdalov.patchga.algorithm
 
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
-import com.github.mbuzdalov.patchga.population.SingleSlotMSTPopulation
 import com.github.mbuzdalov.patchga.util.SortedVector
 
 import scala.annotation.tailrec
@@ -14,7 +13,7 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
                         crossoverParentDistanceSelectionBeta: Double,
                         crossoverParentPairSelectionBeta: Double,
                         crossoverDistanceBeta: Double) extends Optimizer:
-  type RequiredConfig = FitnessType & SingleSlotMSTPopulation & MaximumPatchSize & FitnessComparator & RandomProvider
+  type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
 
   override def optimize(config: RequiredConfig): Nothing =
     import config.*
@@ -52,16 +51,15 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
       val nextNode = if nodesSorted.size >= 3 && random.nextDouble() < crossoverProbability then
         // crossover
         // sample a parent such that it has individuals at distance > 1
-        var firstParent: IndividualHandle = null
+        var firstParent: IndividualHandle = sampleFirstParent()
         while
-          firstParent = sampleFirstParent()
           distanceBuffer.clear()
           collectDistanceToHandles(firstParent, (_, d) => if d > 1 && !distanceSeen(d) then
             distanceSeen(d) = true
             distanceBuffer.addOne(d))
           distanceBuffer.foreach(v => distanceSeen(v) = false)
           distanceBuffer.isEmpty
-        do ()
+        do firstParent = sampleFirstParent()
         // sample a distance out of the valid ones
         distanceBuffer.sortInPlace()
         val secondParentDistance = distanceBuffer(PowerLawDistribution.sample(distanceBuffer.size, crossoverParentDistanceSelectionBeta, random) - 1)
@@ -80,6 +78,6 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
         mutateH(sampleFirstParent(), change)
       end nextNode
       
-      if nextNode.getReferenceCount == 1 then nodesSorted.add(nextNode)
+      if nextNode.referenceCount == 1 then nodesSorted.add(nextNode)
       go()
     go()

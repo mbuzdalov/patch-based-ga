@@ -22,12 +22,12 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
       target.addEdge(reverse)
       reverse.target.addEdge(this)
 
-  abstract class Node:
-    private[SingleSlotMSTPopulation] var referenceCount = 1
+  abstract class Node extends WithReferenceCount:
+    private[SingleSlotMSTPopulation] var refCount = 1
     private val edges = new ArrayBuffer[Edge](2)
     private var nextEdgeInPath: Edge = uninitialized
-
-    def getReferenceCount: Int = referenceCount
+    
+    override def referenceCount: Int = refCount
     
     private[SingleSlotMSTPopulation] def nEdges: Int = edges.size
     private[SingleSlotMSTPopulation] def addEdge(edge: Edge): Unit =
@@ -73,7 +73,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
           applyToIndividual(masterIndividual, theEdge.patch)
           currentNode = otherNode
         otherNode.removeEdge(theEdge.reverse)
-        if otherNode.referenceCount == 0 then
+        if otherNode.refCount == 0 then
           otherNode.tryDisconnect()
 
 
@@ -92,8 +92,8 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
       val parent = shortestEdge.target
       if shortestEdge.length == 0 then
         assert(nEdges == 1)
-        referenceCount = 0
-        parent.referenceCount += 1
+        refCount = 0
+        parent.refCount += 1
         tryDisconnect()
         if allowDuplicates then
           buildPathToNode(null, currentNode, parent)
@@ -120,8 +120,8 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
 
   override def discardH(handle: IndividualHandle): Unit =
     if !disableDiscard then
-      handle.referenceCount -= 1
-      if handle.referenceCount == 0 then
+      handle.refCount -= 1
+      if handle.refCount == 0 then
         handle.tryDisconnect()
 
   override def newRandomIndividualH(): IndividualHandle =
@@ -139,7 +139,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     end if
 
   override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
-    assert(handle.referenceCount > 0)
+    assert(handle.refCount > 0)
     buildPathToNode(null, currentNode, handle)
     rewindMasterIndividualByPath()
     initializeMutablePatchFromDistance(masterPatch, distance)
@@ -147,8 +147,8 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
 
   override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
                           inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
-    assert(mainParent.referenceCount > 0)
-    assert(auxParent.referenceCount > 0)
+    assert(mainParent.refCount > 0)
+    assert(auxParent.refCount > 0)
     buildPathToNode(null, currentNode, mainParent)
     rewindMasterIndividualByPath()
     buildPathToNode(null, currentNode, auxParent)
@@ -232,10 +232,10 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
                 true
               else
                 false
-    if aliveChildren == 0 && curr.referenceCount == 0 then -1 else myPendingEdge
+    if aliveChildren == 0 && curr.refCount == 0 then -1 else myPendingEdge
 
   private def prepareCollection(base: IndividualHandle): Unit =
-    assert(base.referenceCount > 0)
+    assert(base.refCount > 0)
     buildPathToNode(null, currentNode, base)
     rewindMasterIndividualByPath()
     clearMutablePatch(masterPatch)
@@ -245,7 +245,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     collectDistanceToHandlesImpl(null, currentNode, consumer)
 
   private def collectDistanceToHandlesImpl(parent: Node, curr: Node, function: (IndividualHandle, Int) => Unit): Unit =
-    if curr.referenceCount > 0 then function(curr, mutablePatchSize(masterPatch))
+    if curr.refCount > 0 then function(curr, mutablePatchSize(masterPatch))
     curr.iterateOverEdges(parent): edge =>
       appendToMutablePatch(masterPatch, edge.patch)
       collectDistanceToHandlesImpl(curr, edge.target, function)
@@ -257,7 +257,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     collectHandlesAtDistanceImpl(null, currentNode, distancePredicate, buffer)
 
   private def collectHandlesAtDistanceImpl(parent: Node, curr: Node, distancePredicate: Int => Boolean, buffer: ArrayBuffer[Node]): Unit =
-    if curr.referenceCount > 0 && distancePredicate(mutablePatchSize(masterPatch)) then buffer.addOne(curr)
+    if curr.refCount > 0 && distancePredicate(mutablePatchSize(masterPatch)) then buffer.addOne(curr)
     curr.iterateOverEdges(parent): edge =>
       appendToMutablePatch(masterPatch, edge.patch)
       collectHandlesAtDistanceImpl(curr, edge.target, distancePredicate, buffer)

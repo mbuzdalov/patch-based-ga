@@ -8,7 +8,7 @@ trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean) 
   self: IndividualType & FitnessType & NewRandomIndividual & IndividualDistance
     & SimpleMutationOperator & SimpleCrossoverOperator & SimpleFitnessFunction =>
 
-  class FitIndividual(val individual: Individual):
+  class FitIndividual(val individual: Individual) extends WithReferenceCount:
     var referenceCount: Int = 1
     val fitness: Fitness = computeFitness(individual)
 
