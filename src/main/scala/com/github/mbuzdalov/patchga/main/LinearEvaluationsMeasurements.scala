@@ -47,7 +47,7 @@ object LinearEvaluationsMeasurements:
       // generate and execute tasks
       val tasks = IndexedSeq.tabulate(nRuns): i =>
         pool.submit: () => 
-          val lin = Problems.incrementalLinearFT(n, weights, 31 * i + 3635263, allowDuplicates = false, disableDiscard = true)
+          val lin = Problems.incrementalLinearFT(weights, 31 * i + 3635263, allowDuplicates = false, disableDiscard = true)
           FixedTargetTerminator.runUntilTargetReached(algo)(lin).nEvaluations
       // compute and print the statistics
       val results = tasks.map(_.get()).sorted

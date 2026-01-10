@@ -48,15 +48,15 @@ object Problems:
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
   
-  def naiveLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
-    new UnconstrainedBitString(size)
+  def naiveLinearFT(weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
+    new UnconstrainedBitString(weightCounts.sum)
       with LinearIntegerWeights(weightCounts, weightSeed)
       with NaiveScratchPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = sumWeights
 
-  def incrementalLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
-    new UnconstrainedBitString(size)
+  def incrementalLinearFT(weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
+    new UnconstrainedBitString(weightCounts.sum)
       with LinearIntegerWeights(weightCounts, weightSeed) with LinearIntegerWeights.Incremental
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
       with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
