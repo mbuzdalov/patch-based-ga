@@ -34,6 +34,20 @@ object Problems:
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
   
+  def incrementalCliffFT(size: Int, gap: Int, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
+    new UnconstrainedBitString(size)
+      with OneMax.BasicArray with Cliff(size, gap) with OneMax.BasicArrayIncremental
+      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
+      with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
+      override def targetFitness: Fitness = size
+  
+  def compressedCliffFT(size: Int, gap: Int, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
+    new CompressedBitString(size)
+      with OneMax.Compressed with Cliff(size, gap)
+      with NaiveScratchPopulation(allowDuplicates, disableDiscard)
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
+      override def targetFitness: Fitness = size
+  
   def naiveLinearFT(size: Int, weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
     new UnconstrainedBitString(size)
       with LinearIntegerWeights(weightCounts, weightSeed)

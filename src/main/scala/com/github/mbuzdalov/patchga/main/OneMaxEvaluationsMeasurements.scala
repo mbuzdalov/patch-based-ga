@@ -38,15 +38,17 @@ object OneMaxEvaluationsMeasurements:
       n = 1 << nLog
       (algoName, algo) <- algorithms
     do
+      val t0 = System.currentTimeMillis()
       val tasks = IndexedSeq.fill(nRuns):
         pool.submit: () => 
           val om = Problems.incrementalOneMaxFT(n, allowDuplicates = false, disableDiscard = true)
           FixedTargetTerminator.runUntilTargetReached(algo)(om).nEvaluations
       val results = tasks.map(_.get()).sorted
+      val time = System.currentTimeMillis() - t0
+      val median = results(nRuns / 2)
+      println(s"$n, $algoName: took $time ms")
       val evaluationStats = new MeanAndStandardDeviation(nRuns)
       results.foreach(v => evaluationStats.record(v.toDouble))
-      val median = results(nRuns / 2)
-      println(s"$n, $algoName:")
       println(s"  median $median, mean ${evaluationStats.mean}, stddev ${evaluationStats.stdDev}")
       println(results.mkString("  runs: ", ",", ""))
 
