@@ -14,8 +14,8 @@ object LinearEvaluationsMeasurements:
       case "default" => Seq(
         "RLS" -> OnePlusOneEA.randomizedLocalSearch,
         "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
-        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 0.002 / n))),
-        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 0.004 / n))),
+        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 1.2 / n))),
+        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 1.4 / n))),
         "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 2.5),
       )
       case "(2+1)" => for cc <- 0 to 10; c = (1 << cc) * 0.001 yield

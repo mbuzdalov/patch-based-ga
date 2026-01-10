@@ -14,9 +14,10 @@ object LeadingOnesEvaluationsMeasurements:
       case "default" => Seq(
         "RLS" -> OnePlusOneEA.randomizedLocalSearch,
         "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
-        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 0.004 / n))),
-        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 0.001 / n))),
-        "NFGA" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 2.5),
+        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 1.2 / n))),
+        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 1.4 / n))),
+        "NFGA [dist 1.5 other 2.5]" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 2.5),
+        "NFGA [all 1.5]" -> new NeverForgettingGA(1.5, 1.5, 0.5, 1.5, 1.5, 1.5),
       )
       case "(2+1)" => for cc <- 0 to 10; c = (1 << cc) * 0.001 yield
         s"(2+1) EA [$c]" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, c / n)))
