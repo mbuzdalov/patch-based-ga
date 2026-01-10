@@ -1,6 +1,5 @@
 package com.github.mbuzdalov.patchga.algorithm
 
-import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
 import com.github.mbuzdalov.patchga.config.*
