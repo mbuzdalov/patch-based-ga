@@ -24,7 +24,7 @@ object Problems:
     new UnconstrainedBitString(size)
       with OneMax.BasicArray with OneMax.BasicArrayIncremental
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
-      with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
 
   def compressedOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
@@ -38,7 +38,7 @@ object Problems:
     new UnconstrainedBitString(size)
       with OneMax.BasicArray with Cliff(size, gap) with OneMax.BasicArrayIncremental
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
-      with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
   
   def compressedCliffFT(size: Int, gap: Int, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
@@ -59,7 +59,7 @@ object Problems:
     new UnconstrainedBitString(weightCounts.sum)
       with LinearIntegerWeights(weightCounts, weightSeed) with LinearIntegerWeights.Incremental
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
-      with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = sumWeights
 
   def naiveLeadingOnesFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
@@ -73,7 +73,7 @@ object Problems:
     new UnconstrainedBitString(size)
       with LeadingOnes with LeadingOnes.Incremental
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
-      with ThreadLocalRandomProvider with FixedTargetTerminator.Incremental:
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
 
   def naiveKnapsackFB(weights: IArray[Int], values: IArray[Int],
@@ -88,5 +88,5 @@ object Problems:
     new UnconstrainedBitString(weights.length)
       with Knapsack(weights, values, capacity) with Knapsack.Incremental
       with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
-      with ThreadLocalRandomProvider with FixedBudgetTerminator(budget) with FixedBudgetTerminator.Incremental
+      with ThreadLocalRandomProvider with FixedBudgetTerminator(budget)
       with TimePatchBudgetCorrelation(10)

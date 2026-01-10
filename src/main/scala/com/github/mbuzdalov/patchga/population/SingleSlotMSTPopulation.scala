@@ -88,6 +88,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
         shortestEdge = edge
 
     override private[SingleSlotMSTPopulation] def fitness: Fitness = computedFitness
+    
     private[SingleSlotMSTPopulation] def computeFitnessAndSelectResult(): Node =
       val parent = shortestEdge.target
       if shortestEdge.length == 0 then
@@ -98,12 +99,13 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
         if allowDuplicates then
           buildPathToNode(null, currentNode, parent)
           rewindMasterIndividualByPath()
-          computedFitness = computeFitnessFunctionIncrementally(masterIndividual, parent.fitness, shortestEdge.reverse.patch)
+          recordEvaluation(masterIndividual, computedFitness)
         parent
       else
         buildPathToNode(null, currentNode, parent)
         rewindMasterIndividualByPath()
         computedFitness = computeFitnessFunctionIncrementally(masterIndividual, parent.fitness, shortestEdge.reverse.patch)
+        recordEvaluation(masterIndividual, computedFitness)
         currentNode = this
         this
 
@@ -128,6 +130,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     if currentNode == null then
       // This happens only when we are requested for the first time
       currentNode = KnownFitnessNode(computeFitness(masterIndividual))
+      recordEvaluation(masterIndividual, currentNode.fitness)
       currentNode
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow

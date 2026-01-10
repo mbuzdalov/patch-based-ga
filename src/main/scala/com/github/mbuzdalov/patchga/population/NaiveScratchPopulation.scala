@@ -11,6 +11,7 @@ trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean) 
   class FitIndividual(val individual: Individual) extends WithReferenceCount:
     var referenceCount: Int = 1
     val fitness: Fitness = computeFitness(individual)
+    recordEvaluation(individual, fitness)
 
   private val allIndividuals = new scala.collection.mutable.HashSet[FitIndividual]()
   private def handleFor(ind: Individual): FitIndividual =

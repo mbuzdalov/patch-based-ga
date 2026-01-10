@@ -2,8 +2,8 @@ package com.github.mbuzdalov.patchga.config
 
 import scala.collection.mutable.ArrayBuffer
 
-trait Population:
-  self: FitnessType =>
+trait Population extends EvaluationLogger:
+  self: IndividualType & FitnessType =>
 
   type IndividualHandle <: WithReferenceCount
 
