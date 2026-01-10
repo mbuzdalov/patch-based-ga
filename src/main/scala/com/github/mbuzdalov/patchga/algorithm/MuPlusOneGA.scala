@@ -41,8 +41,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
 
     populateSmallest()
 
-    @tailrec
-    def go(): Nothing =
+    Loops.forever:
       val next = if random.nextDouble() < pCrossover then
         // Crossover and mutation
         val i1, i2 = random.nextInt(populationSize)
@@ -76,5 +75,4 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
           val indexToDie = smallestFitnessIndices(toDie)
           discardH(population(indexToDie))
           population(indexToDie) = next
-      go()
-    go()
+      end if
