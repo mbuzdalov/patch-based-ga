@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.main
 
-import com.github.mbuzdalov.patchga.algorithm.{MuPlusOneGA, NeverForgettingGA, OnePlusOneEA, Optimizer}
+import com.github.mbuzdalov.patchga.algorithm.{MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
@@ -83,7 +83,14 @@ object DistinctSamplesToOptimality:
       crossoverProbability = "crossover-probability".doubleFrom(params, 0, 1, "NFGA: "),
       crossoverParentMinimumDistanceBeta = "crossover-parent-minimum-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       secondParentSelectionBeta = "second-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
-      crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 1, 3, "NFGA: ")
+      crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
+    )
+  
+  private def readOnePlusLLGA(r: KindaYamlReader): Optimizer.Any =
+    val params = readParams(r)
+    OnePlusLLGA(
+      mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
+      crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
     )
   
   private def readMuPlusOneGA(mu: Int, r: KindaYamlReader): Optimizer.Any =
@@ -120,6 +127,11 @@ object DistinctSamplesToOptimality:
       case "NFGA" =>
         if r.currentOffset <= offset then throw IllegalArgumentException("NFGA: Parameters are required")
         else readNFGA(r)
+      case "(1+(L,L)) GA" =>
+        if r.currentOffset <= offset then throw IllegalArgumentException("(1+(L,L)) GA: Parameters are required")
+        else readOnePlusLLGA(r)
+      case other =>
+        throw IllegalArgumentException(s"Unknown algorithm type: '$other'")
   
   private def readAlgorithms(r: KindaYamlReader): IndexedSeq[(String, Optimizer.Any)] =
     assert(r.readAndMove == "algorithms")
