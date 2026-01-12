@@ -48,14 +48,18 @@ trait CompressedBitString(size: Int)
       val result = mainParent.clone()
 
       // flipping random subset of differing bits of requested size
-      Loops.foreach(0, inDifferingBits(diff)): i =>
+      val inDiff = inDifferingBits(diff)
+      assert(0 <= inDiff && inDiff <= diff)
+      Loops.foreach(0, inDiff): i =>
         val choice = random.nextInt(i, diff)
         val change = buffer(choice)
         buffer(choice) = buffer(i)
         result(change >>> 6) ^= 1L << change
 
       // flipping random subset of same bits of requested size
-      Loops.foreach(0, inSameBits(same)): i =>
+      val inSame = inSameBits(same)
+      assert(0 <= inSame && inSame <= same)
+      Loops.foreach(0, inSame): i =>
         val choice = random.nextInt(diff + i, size)
         val change = buffer(choice)
         buffer(choice) = buffer(diff + i)

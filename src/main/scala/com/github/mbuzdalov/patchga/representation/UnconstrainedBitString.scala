@@ -36,6 +36,8 @@ trait UnconstrainedBitString(size: Int)
     // Second, iterate over the differing bits again and mutate them in the result as appropriately
     var remainingInDiff = inDifferingBits(countDifferences)
     var remainingInSame = inSameBits(size - countDifferences)
+    assert(0 <= remainingInDiff && remainingInDiff <= countDifferences)
+    assert(0 <= remainingInSame && remainingInSame <= size - countDifferences)
     val result = mainParent.clone()
     if remainingInDiff > 0 || remainingInSame > 0 then
       var scannedDiff, scannedSame = 0
