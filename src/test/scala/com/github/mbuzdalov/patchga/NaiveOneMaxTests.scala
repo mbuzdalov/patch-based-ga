@@ -1,12 +1,11 @@
 package com.github.mbuzdalov.patchga
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import com.github.mbuzdalov.patchga.algorithm.{MuPlusOneGA, OnePlusOneEA, Optimizer}
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
   private case class RunResults(avgEvaluations: Double, avgTime: Double)
@@ -43,12 +42,12 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
 
   "(2+1) GA on OneMax" should "work well with naive population using c=1" in
     simpleTest(n => 2.224 * n * math.log(n))
-              (new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.0 / n)))
+              (MuPlusOneGA.withStandardBitMutation(2, 1.0, 1))
               (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
 
   it should "work well with naive population using c=1.2122" in
     simpleTest(n => 2.18417 * n * math.log(n))
-              (new MuPlusOneGA(2, 1.0, n => BinomialDistribution(n, 1.2122 / n)))
+              (MuPlusOneGA.withStandardBitMutation(2, 1.0, 1.2122))
               (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
 
   // Constants for (10+1) GA are taken from https://link.springer.com/article/10.1007/s00453-020-00743-1,
@@ -56,5 +55,5 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
 
   "(10+1) GA on OneMax" should "work well with naive population" in
     simpleTest(n => 1.75 * n * math.log(n))
-              (new MuPlusOneGA(10, 1.0, n => BinomialDistribution(n, 1.43 / n)))
+              (MuPlusOneGA.withStandardBitMutation(10, 1.0, 1.43))
               (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))

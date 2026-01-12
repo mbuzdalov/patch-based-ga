@@ -105,10 +105,10 @@ object DistinctSamplesToOptimality:
     secondLine.nextToken() match
       case "standard" =>
         val constVal = secondLine.nextToken().toDouble(1e-5, Double.PositiveInfinity, "(mu+1) GA: expected positive constant for 'standard'")
-        MuPlusOneGA(mu, crossoverProbability, n => BinomialDistribution(n, math.min(1, constVal / n)))
+        MuPlusOneGA.withStandardBitMutation(mu, crossoverProbability, constVal)
       case "power-law" =>
         val beta = secondLine.nextToken().toDouble(1, 3, "(mu+1) GA: expected a constant in [1;3] for 'power-law'")
-        MuPlusOneGA(mu, crossoverProbability, n => PowerLawDistribution(n, beta))
+        MuPlusOneGA.withPowerLawMutation(mu, crossoverProbability, beta)
       case other =>
         throw IllegalArgumentException("(mu+1) GA: Expected one of 'standard' or 'power-law'")
   

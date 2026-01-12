@@ -1,7 +1,7 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
+import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.MeanAndStandardDeviation
@@ -16,17 +16,17 @@ object KnapsackQualityMeasurements:
         "RLS" -> OnePlusOneEA.randomizedLocalSearch,
         "(1+1) EA" -> OnePlusOneEA.withStandardBitMutation,
         "(1+1) hEA" -> new OnePlusOneEA(n => PowerLawDistribution(n, 1.5)),
-        "(2+1) GA" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, 1.2 / n))),
-        "(2+1) hGA" -> new MuPlusOneGA(2, 1, n => PowerLawDistribution(n, 1.5)),
-        "(10+1) GA" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, 1.4 / n))),
-        "(10+1) hGA" -> new MuPlusOneGA(10, 1, n => PowerLawDistribution(n, 1.5)),
+        "(2+1) GA" -> MuPlusOneGA.withStandardBitMutation(2, 1, 1.2),
+        "(2+1) hGA" -> MuPlusOneGA.withPowerLawMutation(2, 1, 1.5),
+        "(10+1) GA" -> MuPlusOneGA.withStandardBitMutation(10, 1, 1.4),
+        "(10+1) hGA" -> MuPlusOneGA.withPowerLawMutation(10, 1, 1.5),
         "NFGA [dist 1.5 other 2.5]" -> new NeverForgettingGA(2.5, 1.5, 0.5, 1.5, 2.5, 2.5),
         "NFGA [all 1.5]" -> new NeverForgettingGA(1.5, 1.5, 0.5, 1.5, 1.5, 1.5),
       )
       case "(2+1)" => for cc <- 8 to 15; c = (1 << cc) * 0.001 yield
-        s"(2+1) EA [$c]" -> new MuPlusOneGA(2, 1, n => BinomialDistribution(n, math.min(1, c / n)))
+        s"(2+1) EA [$c]" -> MuPlusOneGA.withStandardBitMutation(2, 1, c)
       case "(10+1)" => for cc <- 8 to 15; c = (1 << cc) * 0.001 yield
-        s"(10+1) EA [$c]" -> new MuPlusOneGA(10, 1, n => BinomialDistribution(n, math.min(1, c / n)))
+        s"(10+1) EA [$c]" -> MuPlusOneGA.withStandardBitMutation(10, 1, c)
 
   def main(args: Array[String]): Unit =
     val n = args(0).toInt

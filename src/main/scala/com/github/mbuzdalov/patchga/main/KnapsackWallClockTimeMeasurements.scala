@@ -1,13 +1,12 @@
 package com.github.mbuzdalov.patchga.main
 
-import java.util.Random
-
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.config.FitnessType
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
+
+import java.util.Random
 
 object KnapsackWallClockTimeMeasurements:
   private case class RunResults(avgTime: Double, avgFitness: Double)
@@ -31,9 +30,9 @@ object KnapsackWallClockTimeMeasurements:
     val budget = args(3).toInt
     val compactOutput = args.length > 4 && args(4) == "compact"
 
-    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
-    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
-    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
+    val twoPlusOneGA = MuPlusOneGA.withStandardBitMutation(2, 0.9, 1.2)
+    val tenPlusOneGA = MuPlusOneGA.withStandardBitMutation(10, 0.9, 1.4)
+    val fiftyPlusOneGA = MuPlusOneGA.withStandardBitMutation(50, 0.9, 1.4)
 
     val evaluations = new MeanAndStandardDeviation(window = 10)
 

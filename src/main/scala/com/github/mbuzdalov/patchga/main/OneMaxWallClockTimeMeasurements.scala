@@ -1,7 +1,6 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
@@ -28,9 +27,9 @@ object OneMaxWallClockTimeMeasurements:
     val n = args(2).toInt
     val compactOutput = args.length > 3 && args(3) == "compact" 
 
-    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
-    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
-    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
+    val twoPlusOneGA = MuPlusOneGA.withStandardBitMutation(2, 0.9, 1.2)
+    val tenPlusOneGA = MuPlusOneGA.withStandardBitMutation(10, 0.9, 1.4)
+    val fiftyPlusOneGA = MuPlusOneGA.withStandardBitMutation(50, 0.9, 1.4)
 
     val evaluations, evaluationTimes = new MeanAndStandardDeviation(window = 10)
 

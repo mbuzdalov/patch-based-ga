@@ -1,15 +1,13 @@
 package com.github.mbuzdalov.patchga.main
 
-import java.io.PrintWriter
-import java.util.Random
-
-import scala.util.Using
-
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
+
+import java.io.PrintWriter
+import java.util.Random
+import scala.util.Using
 
 object KnapsackDiversityMeasurements:
   def main(args: Array[String]): Unit =
@@ -21,7 +19,7 @@ object KnapsackDiversityMeasurements:
     val weights, values = randomArray()
     val capacity = weights.sum / 2
 
-    val optimizer = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
+    val optimizer = MuPlusOneGA.withStandardBitMutation(10, 0.9, 1.4)
     def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true, disableDiscard = false)
 
     Using.resource(new PrintWriter("diversity-correlations.csv")): out =>
