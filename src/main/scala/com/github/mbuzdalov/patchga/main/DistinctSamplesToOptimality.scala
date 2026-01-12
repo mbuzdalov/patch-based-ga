@@ -9,7 +9,8 @@ import com.github.mbuzdalov.patchga.util.Loops
 import java.io.{BufferedReader, Closeable, InputStreamReader, PrintWriter}
 import java.nio.file.{Files, Path, Paths}
 import java.util.StringTokenizer
-import java.util.concurrent.{Future, ScheduledThreadPoolExecutor}
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{Future, ScheduledThreadPoolExecutor, ThreadFactory}
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Using
 import scala.jdk.CollectionConverters.*
@@ -201,7 +202,7 @@ object DistinctSamplesToOptimality:
   
   // Reading runtime configuration
   
-  private case class RuntimeConfig(nProcessors: Int, nRuns: Int)
+  private case class RuntimeConfig(nProcessors: Int, nRuns: Int, stackSize: Int)
   private def readRuntime(r: KindaYamlReader): RuntimeConfig =
     val offset = r.currentOffset
     if r.readAndMove != "runtime" then
@@ -211,7 +212,8 @@ object DistinctSamplesToOptimality:
     val params = readParams(r)
     RuntimeConfig(
       nProcessors = "processors".intFrom(params, 0, Int.MaxValue, "Runtime: "),
-      nRuns = "runs".intFrom(params, 1, Int.MaxValue, "Runtime: ")
+      nRuns = "runs".intFrom(params, 1, Int.MaxValue, "Runtime: "),
+      stackSize = "stack".intFrom(params, 1 << 13, Int.MaxValue, "Runtime: ")
     )
   
   private case class ProblemAlgorithmPair(problemName: String, algorithmName: String)
@@ -256,9 +258,14 @@ object DistinctSamplesToOptimality:
       cmdLineRunner.setDaemon(true)
       cmdLineRunner.start()
       
+      val threadFactory = new ThreadFactory:
+        private val counter = AtomicInteger()
+        override def newThread(r: Runnable): Thread =
+          new Thread(Thread.currentThread().getThreadGroup, r, s"worker-${counter.getAndIncrement()}", runtime.stackSize)
+      
       // run the main computation
       Using.resource(Files.newBufferedWriter(Paths.get(args(0).replace(".yaml", ".log")))): log =>
-        Using.resource(ScheduledThreadPoolExecutor(nProcessors)): pool =>
+        Using.resource(ScheduledThreadPoolExecutor(nProcessors, threadFactory)): pool =>
           // schedule all configs to run
           Loops.foreach(0, runtime.nRuns): run =>
             for
