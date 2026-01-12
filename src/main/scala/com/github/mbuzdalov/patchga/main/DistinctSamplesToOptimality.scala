@@ -6,11 +6,11 @@ import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
 
-import java.io.{Closeable, PrintWriter}
+import java.io.{BufferedReader, Closeable, InputStreamReader, PrintWriter}
 import java.nio.file.{Files, Path, Paths}
 import java.util.StringTokenizer
-import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{Future, ScheduledThreadPoolExecutor}
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Using
 import scala.jdk.CollectionConverters.*
 
@@ -134,7 +134,8 @@ object DistinctSamplesToOptimality:
         throw IllegalArgumentException(s"Unknown algorithm type: '$other'")
   
   private def readAlgorithms(r: KindaYamlReader): IndexedSeq[(String, Optimizer.Any)] =
-    assert(r.readAndMove == "algorithms")
+    if r.readAndMove != "algorithms" then
+      throw IllegalArgumentException("An 'algorithms' section expected")
     val off = r.currentOffset
     val algos = IndexedSeq.newBuilder[(String, Optimizer.Any)]
     val usedNames = scala.collection.mutable.HashSet[String]()
@@ -174,10 +175,11 @@ object DistinctSamplesToOptimality:
         for (k, v) <- paramsToInt do arr(k) = v
         () => Problems.incrementalLinearFT(IArray.unsafeFromArray(arr), 1L, allowDuplicates = false, disableDiscard = true)
   
-  private def readProblems(r: KindaYamlReader): IndexedSeq[(String, () => Problems.FixedTargetProblem)] =
-    assert(r.readAndMove == "problems")
+  private def readProblems(r: KindaYamlReader): IndexedSeq[(String, () => Problems.FixedTargetProblem, Set[String])] =
+    if r.readAndMove != "problems" then
+      throw IllegalArgumentException("A 'problems' section expected")
     val off = r.currentOffset
-    val problems = IndexedSeq.newBuilder[(String, () => Problems.FixedTargetProblem)]
+    val problems = IndexedSeq.newBuilder[(String, () => Problems.FixedTargetProblem, Set[String])]
     val usedNames = scala.collection.mutable.HashSet[String]()
     while r.currentOffset == off do
       val name = r.readAndMove
@@ -185,7 +187,16 @@ object DistinctSamplesToOptimality:
         throw new IllegalArgumentException(s"Problem name '$name' already used")
       if r.currentOffset <= off then
         throw IllegalArgumentException(s"Expect problem description at an offset under problem name")
-      problems.addOne(name -> readProblem(r))
+      val problem = readProblem(r)
+      if r.currentOffset <= off then
+        throw IllegalArgumentException(s"Expect algorithm allowance description at an offset under problem name")
+      val allowOffset = r.currentOffset
+      if r.readAndMove != "allow" then
+        throw IllegalArgumentException("Expected 'allow' section")
+      val set = Set.newBuilder[String]
+      while r.currentOffset > allowOffset do
+        set.addOne(r.readAndMove)
+      problems.addOne((name, problem, set.result()))
     problems.result()
   
   // Reading runtime configuration
@@ -193,16 +204,20 @@ object DistinctSamplesToOptimality:
   private case class RuntimeConfig(nProcessors: Int, nRuns: Int)
   private def readRuntime(r: KindaYamlReader): RuntimeConfig =
     val offset = r.currentOffset
-    assert(r.readAndMove == "runtime")
+    if r.readAndMove != "runtime" then
+      throw IllegalArgumentException("A 'runtime' section is expected")
     if r.currentOffset <= offset then
-      throw new IllegalArgumentException("Empty runtime section")
+      throw IllegalArgumentException("Empty runtime section")
     val params = readParams(r)
     RuntimeConfig(
       nProcessors = "processors".intFrom(params, 0, Int.MaxValue, "Runtime: "),
       nRuns = "runs".intFrom(params, 1, Int.MaxValue, "Runtime: ")
     )
   
-  private case class Result(problemName: String, algorithmName: String, result: Long)
+  private case class ProblemAlgorithmPair(problemName: String, algorithmName: String)
+  private class RunInfo:
+    val futures = ArrayBuffer[Future[?]]()
+    val results = ArrayBuffer[Long]()
   
   def main(args: Array[String]): Unit =
     if args.length == 0 then
@@ -214,39 +229,70 @@ object DistinctSamplesToOptimality:
       val runtime = readRuntime(r)
       val runFmtString = s"%0${s"${runtime.nRuns - 1}".length}d.txt"
       val nProcessors = if runtime.nProcessors > 0 then runtime.nProcessors else Runtime.getRuntime.availableProcessors()
-      val allResults = IndexedSeq.newBuilder[Result]
-      // run everything first, saving phenotype plots to separate files and writing general logs to a log file
+      val runInfoMap = scala.collection.mutable.HashMap[ProblemAlgorithmPair, RunInfo]()
+
+      // start the command line reader
+      val cmdLine: Runnable = () =>
+        Using.resource(new BufferedReader(new InputStreamReader(System.in))): stdin =>
+          Loops.forever:
+            val cmd = StringTokenizer(stdin.readLine(), " ")
+            cmd.nextToken() match
+              case "help" =>
+                println("Supported commands are:")
+                println("  dump [unfinished]: for each problem-algorithm pair, show how many runs are finished,")
+                println("                     omitting fully completed pairs if 'unfinished' is specified.")
+              case "dump" =>
+                val showUnfinishedOnly = cmd.hasMoreTokens && cmd.nextToken() == "unfinished"
+                runInfoMap.synchronized:
+                  for (probName, _, _) <- problems do
+                    println(s"$probName:")
+                    for
+                      (algoName, _) <- algorithms
+                      info <- runInfoMap.get(ProblemAlgorithmPair(probName, algoName))
+                      if info.results.size < info.futures.size || !showUnfinishedOnly
+                    do println(s"  $algoName: ${info.results.size} out of ${info.futures.size} finished")
+              case other => if other.nonEmpty then println(s"Unknown command '$other'")
+      val cmdLineRunner = Thread(cmdLine, "Command line processor")
+      cmdLineRunner.setDaemon(true)
+      cmdLineRunner.start()
+      
+      // run the main computation
       Using.resource(Files.newBufferedWriter(Paths.get(args(0).replace(".yaml", ".log")))): log =>
         Using.resource(ScheduledThreadPoolExecutor(nProcessors)): pool =>
+          // schedule all configs to run
           Loops.foreach(0, runtime.nRuns): run =>
-            val tasksRemaining = AtomicInteger(problems.size * algorithms.size)
-            val tasks = for
-              (probName, problemFun) <- problems
+            for
+              (probName, problemFun, allowance) <- problems
               (algoName, algorithm) <- algorithms
-            yield pool.submit: () =>
-              val t0 = System.currentTimeMillis()
-              val config = problemFun()
-              val reached = FixedTargetTerminator.runUntilTargetReached(algorithm)(config)
-              val time = System.currentTimeMillis() - t0
-              val fitnessRecord = config.fitnessValuesInOrder.map(_.toString).asJava
-              val directory = Paths.get(args(0).replace(".yaml", "")).resolve(probName).resolve(algoName)
-              Files.createDirectories(directory)
-              Files.write(directory.resolve(runFmtString.format(run)), fitnessRecord)
-              tasksRemaining.synchronized:
-                val tasks = tasksRemaining.decrementAndGet()
-                log.write(s"Run $run of $algoName on $probName finished in $time ms, result ${reached.nEvaluations}, $tasks tasks remaining in the run\n")
-                log.flush()
-              Result(probName, algoName, reached.nEvaluations)
-            tasks.foreach(t => allResults.addOne(t.get()))
-            log.write(s"Run $run (${run + 1} of ${runtime.nRuns} runs) finished\n\n")
-            log.flush()
-      // then present easy stats
+              if allowance.contains("all") || allowance.contains(algoName)
+            do
+              val key = ProblemAlgorithmPair(probName, algoName)
+              val runInfo = runInfoMap.synchronized(runInfoMap.getOrElseUpdate(key, RunInfo()))
+              val task: Runnable = () =>
+                val t0 = System.currentTimeMillis()
+                val config = problemFun()
+                val reached = FixedTargetTerminator.runUntilTargetReached(algorithm)(config)
+                val time = System.currentTimeMillis() - t0
+                val fitnessRecord = config.fitnessValuesInOrder.map(_.toString).asJava
+                val directory = Paths.get(args(0).replace(".yaml", "")).resolve(probName).resolve(algoName)
+                Files.createDirectories(directory)
+                Files.write(directory.resolve(runFmtString.format(run)), fitnessRecord)
+                runInfoMap.synchronized:
+                  log.write(s"$algoName on $probName: run $run finished, ${runInfo.results.size + 1} out of ${runtime.nRuns}, in $time ms, result ${reached.nEvaluations}\n")
+                  log.flush()
+                  runInfo.results.addOne(reached.nEvaluations)
+              runInfo.futures.addOne(pool.submit(task))
+
+          // then wait for them to finish execution
+          for
+            runInfo <- runInfoMap.values
+            future <- runInfo.futures
+          do future.get()
+
+      // present easy stats
       Using.resource(PrintWriter(args(0).replace(".yaml", ".out"))): pw =>
-        val allByProblem = allResults.result().groupBy(_.problemName)
-        for (probName, _) <- problems do
+        for (probName, _, _) <- problems do
           pw.println(s"$probName:")
-          val allForProblemByAlgo = allByProblem(probName).groupBy(_.algorithmName)
           for (algoName, _) <- algorithms do
-            val results = allForProblemByAlgo(algoName).map(_.result).sorted
+            val results = runInfoMap(ProblemAlgorithmPair(probName, algoName)).results.toIndexedSeq.sorted
             pw.println(f"  $algoName: mean = ${results.sum.toDouble / results.size}%.2f, min = ${results.head}, median = ${results(results.size / 2)}, max = ${results.last}")
-            
