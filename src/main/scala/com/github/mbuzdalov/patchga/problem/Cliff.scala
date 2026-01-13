@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.problem
 
-import com.github.mbuzdalov.patchga.config.{FitnessComparator, FitnessType, IndividualType, SimpleFitnessFunction}
+import com.github.mbuzdalov.patchga.config.{FitnessComparator, FitnessType}
 
 trait Cliff(size: Int, gap: Int) extends FitnessComparator:
   self: FitnessType { type Fitness = Int } =>
