@@ -303,5 +303,8 @@ object DistinctSamplesToOptimality:
         for (probName, _, _) <- problems do
           pw.println(s"$probName:")
           for (algoName, _) <- algorithms do
-            val results = runInfoMap(ProblemAlgorithmPair(probName, algoName)).results.toIndexedSeq.sorted
-            pw.println(f"  $algoName: mean = ${results.sum.toDouble / results.size}%.2f, min = ${results.head}, median = ${results(results.size / 2)}, max = ${results.last}")
+            runInfoMap.get(ProblemAlgorithmPair(probName, algoName)) match
+              case Some(r) =>
+                val results = r.results.toIndexedSeq.sorted
+                pw.println(f"  $algoName: mean = ${results.sum.toDouble / results.size}%.2f, min = ${results.head}, median = ${results(results.size / 2)}, max = ${results.last}")
+              case None =>
