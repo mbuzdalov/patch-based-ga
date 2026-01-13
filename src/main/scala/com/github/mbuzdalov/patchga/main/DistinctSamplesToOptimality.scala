@@ -169,6 +169,10 @@ object DistinctSamplesToOptimality:
         val size = "size".intFrom(params, 4, Int.MaxValue, "Cliff: ")
         val gap = "gap".intFrom(params, 2, size / 2, "Cliff: ")
         () => Problems.incrementalCliffFT(size, gap, allowDuplicates = false, disableDiscard = true)
+      case "Plateau" =>
+        val size = "size".intFrom(params, 4, Int.MaxValue, "Plateau: ")
+        val gap = "gap".intFrom(params, 2, size / 2, "Plateau: ")
+        () => Problems.incrementalPlateauFT(size, gap, allowDuplicates = false, disableDiscard = true)
       case "Linear" =>
         val paramsToInt = params.map:
           case (k, v) => (k.toInt(1, Int.MaxValue, "Linear: weight must be positive"), v.toInt(0, Int.MaxValue, "Linear: weight count must be non-negative"))

@@ -48,6 +48,13 @@ object Problems:
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
   
+  def incrementalPlateauFT(size: Int, gap: Int, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
+    new UnconstrainedBitString(size)
+      with OneMax.BasicArray with Plateau(size, gap) with OneMax.BasicArrayIncremental
+      with SingleSlotMSTPopulation(allowDuplicates, disableDiscard)
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
+      override def targetFitness: Fitness = size
+  
   def naiveLinearFT(weightCounts: IArray[Int], weightSeed: Long, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
     new UnconstrainedBitString(weightCounts.sum)
       with LinearIntegerWeights(weightCounts, weightSeed)
