@@ -144,6 +144,7 @@ object DistinctSamplesToOptimality:
       val name = r.readAndMove
       if usedNames.contains(name) then
         throw new IllegalArgumentException(s"Algorithm name '$name' already used")
+      usedNames.add(name)
       if r.currentOffset <= off then
         throw new IllegalArgumentException(s"Expect algorithm description at an offset under algorithm name")
       algos.addOne(name -> readAlgorithm(r))
@@ -186,6 +187,7 @@ object DistinctSamplesToOptimality:
       val name = r.readAndMove
       if usedNames.contains(name) then
         throw new IllegalArgumentException(s"Problem name '$name' already used")
+      usedNames.add(name)
       if r.currentOffset <= off then
         throw IllegalArgumentException(s"Expect problem description at an offset under problem name")
       val problem = readProblem(r)
