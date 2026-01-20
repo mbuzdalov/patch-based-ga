@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.main
 
-import com.github.mbuzdalov.patchga.algorithm.{MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
+import com.github.mbuzdalov.patchga.algorithm.{DEGAPlus, MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
@@ -119,6 +119,9 @@ object DistinctSamplesToOptimality:
       case "RLS" =>
         if r.currentOffset <= offset then OnePlusOneEA.randomizedLocalSearch
         else throw IllegalArgumentException(s"RLS does not take parameters, found one: '${r.current}'")
+      case "DEGA+" =>
+        if r.currentOffset <= offset then DEGAPlus
+        else throw IllegalArgumentException(s"DEGA+ does not take parameters, found one: '${r.current}'")
       case "(1+1) EA" =>
         if r.currentOffset <= offset then OnePlusOneEA.withStandardBitMutation
         else readOnePlusOneEA(r)
