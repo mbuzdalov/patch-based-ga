@@ -160,7 +160,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     val interParentDistance = mutablePatchSize(masterPatch)
     val desiredInDifferent = inDifferingBits(interParentDistance)
     val desiredInSame = inSameBits(maximumPatchSize - interParentDistance) // very brittle!
-    applyCrossoverRequest(masterPatch, desiredInDifferent, desiredInSame)
+    applyCrossoverRequest(masterPatch, interParentDistance - desiredInDifferent, desiredInSame)
     newNodeFromPatch()
 
   private def newNodeFromPatch(): IndividualHandle =
