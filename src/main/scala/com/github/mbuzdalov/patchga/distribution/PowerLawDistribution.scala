@@ -36,8 +36,13 @@ object PowerLawDistribution:
 
   private def getArrayForBeta(beta: Double) = distributionInstances.computeIfAbsent(beta, _ => new GrowableDoubleArray)
 
-  def sample(n: Int, beta: Double, rng: Random): Int = sample(n, beta, rng, getArrayForBeta(beta))
+  def sample(n: Int, beta: Double, rng: Random): Int =
+    if beta == 0
+    then rng.nextInt(1, n + 1)
+    else sample(n, beta, rng, getArrayForBeta(beta))
+
   def apply(n: Int, beta: Double): IntegerDistribution =
     if n <= 0 then throw IllegalArgumentException("Non-positive bound for power-law distribution")
     else if n == 1 then ConstantDistribution(1)
+    else if beta == 0 then UniformDistribution(1, n)  
     else new PowerLawDistribution(n, beta, getArrayForBeta(beta))
