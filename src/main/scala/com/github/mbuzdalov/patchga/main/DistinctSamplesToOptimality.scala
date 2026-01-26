@@ -165,6 +165,9 @@ object DistinctSamplesToOptimality:
       case "OneMax" =>
         val size = "size".intFrom(params, 1, Int.MaxValue, "OneMax: ")
         () => Problems.incrementalOneMaxFT(size, allowDuplicates = false, disableDiscard = true)
+      case "TwoMax" =>
+        val size = "size".intFrom(params, 1, Int.MaxValue, "TwoMax: ")
+        () => Problems.incrementalTwoMaxFT(size)
       case "LeadingOnes" =>
         val size = "size".intFrom(params, 1, Int.MaxValue, "LeadingOnes: ")
         () => Problems.incrementalLeadingOnesFT(size, allowDuplicates = false, disableDiscard = true)

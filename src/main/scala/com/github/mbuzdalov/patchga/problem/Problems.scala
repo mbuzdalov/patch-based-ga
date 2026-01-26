@@ -34,6 +34,26 @@ object Problems:
       with ThreadLocalRandomProvider with FixedTargetTerminator:
       override def targetFitness: Fitness = size
   
+  def incrementalTwoMaxFT(size: Int): FixedTargetProblem =
+    new UnconstrainedBitString(size)
+      with OneMax.BasicArray with OneMax.BasicArrayIncremental
+      with SingleSlotMSTPopulation(allowDuplicates = false, disableDiscard = true)
+      with ThreadLocalRandomProvider with FixedTargetTerminator:
+      private var mask = 0
+      
+      override def targetFitness: Fitness = size
+
+      // this is an on-the-fly conversion from OneMax to TwoMax fitness
+      override def compare(lhs: Fitness, rhs: Fitness): Int = 
+        super.compare(math.max(lhs, size - lhs), math.max(rhs, size - rhs))
+
+      // this interferes with throwing target reached exceptions until all optima are found   
+      override def recordEvaluation(individual: Array[Boolean], fitness: Int): Unit = 
+        try super.recordEvaluation(individual, fitness) catch
+          case e: TargetReached =>
+            mask |= (if individual(0) then 1 else 2)
+            if mask == 3 then throw e
+  
   def incrementalCliffFT(size: Int, gap: Int, allowDuplicates: Boolean, disableDiscard: Boolean): FixedTargetProblem =
     new UnconstrainedBitString(size)
       with OneMax.BasicArray with Cliff(size, gap) with OneMax.BasicArrayIncremental
