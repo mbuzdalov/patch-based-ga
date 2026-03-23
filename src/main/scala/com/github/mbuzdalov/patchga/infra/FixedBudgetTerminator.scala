@@ -15,6 +15,8 @@ trait FixedBudgetTerminator(val maxEvaluations: Long) extends EvaluationLogger:
   override def recordEvaluation(individual: Individual, fitness: Fitness): Unit =
     super.recordEvaluation(individual, fitness)
     if nFitnessEvaluations == 0 || compare(fitness, bestFitness) > 0 then
+      // TODO: this is actually expensive.
+      // With this, fixed budget setups should not normally be run when updates are frequent.
       bestIndividual = copyOfIndividual(individual)
       bestFitness = fitness
       
