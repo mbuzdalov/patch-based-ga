@@ -10,22 +10,22 @@ import org.scalatest.matchers.should.Matchers
 class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
   private case class RunResults(avgEvaluations: Double, avgTime: Double)
 
-  private def run(optimizer: Optimizer)
-                 (problem: => optimizer.RequiredConfig & FixedTargetTerminator): RunResults =
+  private def run(optimizer: Optimizer, target: Int)
+                 (problem: => optimizer.RequiredConfig & Problems.IntProblem): RunResults =
     val nRuns = 10
     var sumEvaluations = 0.0
     val tBegin = System.nanoTime()
     Loops.repeat(nRuns):
       val instance = problem
-      sumEvaluations += FixedTargetTerminator.runUntilTargetReached(optimizer)(instance).nEvaluations
+      sumEvaluations += FixedTargetTerminator.runUntilTargetReached(optimizer, instance, target).nEvaluations
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
 
   private def simpleTest(expected: Int => Double)
                         (optimizer: Optimizer)
-                        (problem: Int => optimizer.RequiredConfig & FixedTargetTerminator): Unit =
+                        (problem: Int => optimizer.RequiredConfig & Problems.IntProblem): Unit =
     val n = 512
     val expectedEvs = expected(n)
-    val RunResults(evs, _) = run(optimizer)(problem(n))
+    val RunResults(evs, _) = run(optimizer, n)(problem(n))
     evs shouldBe expectedEvs +- (0.3 * expectedEvs)
 
   "RLS on OneMax" should "work well with naive population" in

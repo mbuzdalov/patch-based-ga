@@ -2,7 +2,7 @@ package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.config.FitnessType
-import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
+import com.github.mbuzdalov.patchga.infra.CheapFixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
@@ -10,17 +10,19 @@ import java.util.Random
 
 object KnapsackWallClockTimeMeasurements:
   private case class RunResults(avgTime: Double, avgFitness: Double)
+  private type SupportedOptimizer = Optimizer:
+    type RequiredConfig >: Problems.MinimalRequirements
 
-  private def run(optimizer: Optimizer)
-                 (problem: => optimizer.RequiredConfig & FixedBudgetTerminator & FitnessType { type Fitness = Knapsack.FitnessObject }): RunResults =
+  private def run(optimizer: SupportedOptimizer, budget: Long)
+                 (problem: => Problems.KnapsackProblem): RunResults =
     var sumFitnessValues: Double = 0.0
     var nRuns = 0L
     val tBegin = System.nanoTime()
     while System.nanoTime() - tBegin < 1e9 do
       val instance = problem
-      val result = FixedBudgetTerminator.runUntilBudgetReached(optimizer)(instance)
+      val result = CheapFixedBudgetTerminator.runUntilBudgetReached(optimizer, instance, budget)
       nRuns += 1
-      if result.fitness.isValid then sumFitnessValues += result.fitness.sumValues
+      if result.isValid then sumFitnessValues += result.sumValues
     RunResults((System.nanoTime() - tBegin) * 1e-9 / nRuns, sumFitnessValues / nRuns)
 
   def main(args: Array[String]): Unit =
@@ -43,11 +45,11 @@ object KnapsackWallClockTimeMeasurements:
 
     def naive() =
       val weights, values = randomArray()
-      Problems.naiveKnapsackFB(weights, values, weights.sum / 2, budget, allowDuplicates = true, disableDiscard = false)
+      Problems.naiveKnapsackFB(weights, values, weights.sum / 2, allowDuplicates = true, disableDiscard = false)
 
     def incremental() =
       val weights, values = randomArray()
-      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, budget, allowDuplicates = true, disableDiscard = false)
+      Problems.incrementalKnapsackFB(weights, values, weights.sum / 2, allowDuplicates = true, disableDiscard = false)
 
     def newProblem() = flavour match
       case "naive" => naive()
@@ -55,11 +57,11 @@ object KnapsackWallClockTimeMeasurements:
 
     Loops.repeat(20):
       val result = algo match
-        case "RLS" => run(OnePlusOneEA.randomizedLocalSearch)(newProblem())
-        case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
-        case "(2+1)" => run(twoPlusOneGA)(newProblem())
-        case "(10+1)" => run(tenPlusOneGA)(newProblem())
-        case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
+        case "RLS" => run(OnePlusOneEA.randomizedLocalSearch, budget)(newProblem())
+        case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation, budget)(newProblem())
+        case "(2+1)" => run(twoPlusOneGA, budget)(newProblem())
+        case "(10+1)" => run(tenPlusOneGA, budget)(newProblem())
+        case "(50+1)" => run(fiftyPlusOneGA, budget)(newProblem())
       val curr = result.avgTime / budget
       evaluations.record(curr)
       if !compactOutput then

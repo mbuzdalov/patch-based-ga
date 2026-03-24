@@ -5,8 +5,10 @@ import scala.collection.mutable.ArrayBuffer
 trait EvaluationLogger:
   self: IndividualType & FitnessType =>
 
-  private val allFitnessValues = ArrayBuffer[Fitness]()
+  private val listeners = ArrayBuffer[(Individual, Fitness) => Unit]()
+
+  def addEvaluationListener(listener: (Individual, Fitness) => Unit): Unit =
+    listeners.addOne(listener)
   
-  final def fitnessValuesInOrder: IndexedSeq[Fitness] = allFitnessValues.toIndexedSeq
-  def recordEvaluation(individual: Individual, fitness: Fitness): Unit =
-    allFitnessValues.addOne(fitness)
+  protected final def recordEvaluation(individual: Individual, fitness: Fitness): Unit =
+    listeners.foreach(_(individual, fitness))

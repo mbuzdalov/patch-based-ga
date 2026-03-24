@@ -1,6 +1,7 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.{DEGAPlus, MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
+import com.github.mbuzdalov.patchga.config.FitnessType
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
@@ -16,6 +17,13 @@ import scala.util.Using
 import scala.jdk.CollectionConverters.*
 
 object DistinctSamplesToOptimality:
+  private type SupportedOptimizer = Optimizer:
+    type RequiredConfig >: Problems.MinimalRequirements
+
+  private case class ProblemAndTarget[T](config: Problems.MinimalRequirements & FitnessType {
+    type Fitness = T
+  }, target: T, nRequiredHits: Int)
+  
   private class KindaYamlReader(path: Path) extends Closeable:
     private val br = Files.newBufferedReader(path)
     private var currLine = br.readLine()
@@ -63,7 +71,7 @@ object DistinctSamplesToOptimality:
   
   // Reading algorithm configurations
   
-  private def readOnePlusOneEA(r: KindaYamlReader): Optimizer.Any =
+  private def readOnePlusOneEA(r: KindaYamlReader): SupportedOptimizer =
     val line = r.readAndMove
     val tok = StringTokenizer(line, ":, ")
     tok.nextToken() match
@@ -76,7 +84,7 @@ object DistinctSamplesToOptimality:
       case other =>
         throw IllegalArgumentException("(1+1) EA: Expected one of 'standard' or 'power-law'")
         
-  private def readNFGA(r: KindaYamlReader): Optimizer.Any =
+  private def readNFGA(r: KindaYamlReader): SupportedOptimizer =
     val params = readParams(r)
     NeverForgettingGA(
       firstParentSelectionBeta = "first-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
@@ -87,14 +95,14 @@ object DistinctSamplesToOptimality:
       crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 0, 3, "NFGA: "),
     )
   
-  private def readOnePlusLLGA(r: KindaYamlReader): Optimizer.Any =
+  private def readOnePlusLLGA(r: KindaYamlReader): SupportedOptimizer =
     val params = readParams(r)
     OnePlusLLGA(
       mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
       crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
     )
   
-  private def readMuPlusOneGA(mu: Int, r: KindaYamlReader): Optimizer.Any =
+  private def readMuPlusOneGA(mu: Int, r: KindaYamlReader): SupportedOptimizer =
     val offset = r.currentOffset
     val firstLine = StringTokenizer(r.readAndMove, ":, ")
     if firstLine.nextToken() != "crossover-probability" then
@@ -113,7 +121,7 @@ object DistinctSamplesToOptimality:
       case other =>
         throw IllegalArgumentException("(mu+1) GA: Expected one of 'standard' or 'power-law'")
   
-  private def readAlgorithm(r: KindaYamlReader): Optimizer.Any =
+  private def readAlgorithm(r: KindaYamlReader): SupportedOptimizer =
     val offset = r.currentOffset
     r.readAndMove match
       case "RLS" =>
@@ -137,11 +145,11 @@ object DistinctSamplesToOptimality:
       case other =>
         throw IllegalArgumentException(s"Unknown algorithm type: '$other'")
   
-  private def readAlgorithms(r: KindaYamlReader): IndexedSeq[(String, Optimizer.Any)] =
+  private def readAlgorithms(r: KindaYamlReader): IndexedSeq[(String, SupportedOptimizer)] =
     if r.readAndMove != "algorithms" then
       throw IllegalArgumentException("An 'algorithms' section expected")
     val off = r.currentOffset
-    val algos = IndexedSeq.newBuilder[(String, Optimizer.Any)]
+    val algos = IndexedSeq.newBuilder[(String, SupportedOptimizer)]
     val usedNames = scala.collection.mutable.HashSet[String]()
     while r.currentOffset == off do
       val name = r.readAndMove
@@ -155,7 +163,7 @@ object DistinctSamplesToOptimality:
   
   // Reading problem configurations
   
-  private def readProblem(r: KindaYamlReader): () => Problems.FixedTargetProblem =
+  private def readProblem(r: KindaYamlReader): () => ProblemAndTarget[?] =
     val offset = r.currentOffset
     val name = r.readAndMove
     if r.currentOffset <= offset then
@@ -164,34 +172,53 @@ object DistinctSamplesToOptimality:
     name match
       case "OneMax" =>
         val size = "size".intFrom(params, 1, Int.MaxValue, "OneMax: ")
-        () => Problems.incrementalOneMaxFT(size, allowDuplicates = false, disableDiscard = true)
+        () => ProblemAndTarget(
+          config = Problems.incrementalOneMaxFT(size, allowDuplicates = false, disableDiscard = true),
+          target = size, nRequiredHits = 1
+        )
       case "TwoMax" =>
         val size = "size".intFrom(params, 1, Int.MaxValue, "TwoMax: ")
-        () => Problems.incrementalTwoMaxFT(size)
+        () => ProblemAndTarget(
+          config = Problems.incrementalTwoMaxFT(size),
+          target = size, nRequiredHits = 2
+        )
       case "LeadingOnes" =>
         val size = "size".intFrom(params, 1, Int.MaxValue, "LeadingOnes: ")
-        () => Problems.incrementalLeadingOnesFT(size, allowDuplicates = false, disableDiscard = true)
+        () => ProblemAndTarget(
+          config = Problems.incrementalLeadingOnesFT(size, allowDuplicates = false, disableDiscard = true),
+          target = size, nRequiredHits = 1
+        )
       case "Cliff" =>
         val size = "size".intFrom(params, 4, Int.MaxValue, "Cliff: ")
         val gap = "gap".intFrom(params, 2, size / 2, "Cliff: ")
-        () => Problems.incrementalCliffFT(size, gap, allowDuplicates = false, disableDiscard = true)
+        () => ProblemAndTarget(
+          config = Problems.incrementalCliffFT(size, gap, allowDuplicates = false, disableDiscard = true),
+          target = size, nRequiredHits = 1
+        )
       case "Plateau" =>
         val size = "size".intFrom(params, 4, Int.MaxValue, "Plateau: ")
         val gap = "gap".intFrom(params, 2, size / 2, "Plateau: ")
-        () => Problems.incrementalPlateauFT(size, gap, allowDuplicates = false, disableDiscard = true)
+        () => ProblemAndTarget(
+          config = Problems.incrementalPlateauFT(size, gap, allowDuplicates = false, disableDiscard = true),
+          target = size, nRequiredHits = 1
+        )
       case "Linear" =>
         val paramsToInt = params.map:
           case (k, v) => (k.toInt(1, Int.MaxValue, "Linear: weight must be positive"), v.toInt(0, Int.MaxValue, "Linear: weight count must be non-negative"))
         val maxW = paramsToInt.keys.max
         val arr = Array.ofDim[Int](maxW + 1)
         for (k, v) <- paramsToInt do arr(k) = v
-        () => Problems.incrementalLinearFT(IArray.unsafeFromArray(arr), 1L, allowDuplicates = false, disableDiscard = true)
+        val target = paramsToInt.toIndexedSeq.map((k, v) => k.toLong * v).sum
+        () => ProblemAndTarget(
+          config = Problems.incrementalLinearFT(IArray.unsafeFromArray(arr), 1L, allowDuplicates = false, disableDiscard = true),
+          target = target, nRequiredHits = 1
+        )
   
-  private def readProblems(r: KindaYamlReader): IndexedSeq[(String, () => Problems.FixedTargetProblem, Set[String])] =
+  private def readProblems(r: KindaYamlReader): IndexedSeq[(String, () => ProblemAndTarget[?], Set[String])] =
     if r.readAndMove != "problems" then
       throw IllegalArgumentException("A 'problems' section expected")
     val off = r.currentOffset
-    val problems = IndexedSeq.newBuilder[(String, () => Problems.FixedTargetProblem, Set[String])]
+    val problems = IndexedSeq.newBuilder[(String, () => ProblemAndTarget[?], Set[String])]
     val usedNames = scala.collection.mutable.HashSet[String]()
     while r.currentOffset == off do
       val name = r.readAndMove
@@ -289,10 +316,12 @@ object DistinctSamplesToOptimality:
               val runInfo = runInfoMap.synchronized(runInfoMap.getOrElseUpdate(key, RunInfo()))
               val task: Runnable = () =>
                 val t0 = System.currentTimeMillis()
-                val config = problemFun()
-                val reached = FixedTargetTerminator.runUntilTargetReached(algorithm)(config)
+                val pat = problemFun()
+                val fitnessValues = ArrayBuffer[pat.config.Fitness]()
+                pat.config.addEvaluationListener((i, f) => fitnessValues.addOne(f))
+                val reached = FixedTargetTerminator.runUntilTargetReached(algorithm, pat.config, pat.target, pat.nRequiredHits)
                 val time = System.currentTimeMillis() - t0
-                val fitnessRecord = config.fitnessValuesInOrder.map(_.toString).asJava
+                val fitnessRecord = fitnessValues.map(_.toString).asJava
                 val directory = Paths.get(args(0).replace(".yaml", "")).resolve(probName).resolve(algoName)
                 Files.createDirectories(directory)
                 Files.write(directory.resolve(runFmtString.format(run)), fitnessRecord)

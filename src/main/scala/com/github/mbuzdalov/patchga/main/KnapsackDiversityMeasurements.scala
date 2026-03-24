@@ -1,7 +1,7 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
+import com.github.mbuzdalov.patchga.infra.{CheapFixedBudgetTerminator, TimePatchBudgetCorrelation}
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
 
@@ -20,13 +20,14 @@ object KnapsackDiversityMeasurements:
     val capacity = weights.sum / 2
 
     val optimizer = MuPlusOneGA.withStandardBitMutation(10, 0.9, 1.4)
-    def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true, disableDiscard = false)
+    def newKnapsack() = Problems.incrementalKnapsackFB(weights, values, capacity, allowDuplicates = true, disableDiscard = false)
 
     Using.resource(new PrintWriter("diversity-correlations.csv")): out =>
       out.println("evaluations,avg-time,avg-patch-size")
       Loops.foreach(0, 110): t =>
         val instance = newKnapsack()
-        FixedBudgetTerminator.runUntilBudgetReached(optimizer)(instance)
+        val corr = TimePatchBudgetCorrelation(10, instance)
+        CheapFixedBudgetTerminator.runUntilBudgetReached(optimizer, instance, budget)
         if t >= 10 then
-          for result <- instance.timePatchBudgetCorrelations do
+          for result <- corr.timePatchBudgetCorrelations do
             out.println(s"${result.totalEvaluations},${result.averageOperationTime},${result.averagePatchSize}")

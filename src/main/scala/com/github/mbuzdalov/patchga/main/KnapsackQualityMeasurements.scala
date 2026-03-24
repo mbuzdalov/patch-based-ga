@@ -2,7 +2,7 @@ package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
 import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
-import com.github.mbuzdalov.patchga.infra.FixedBudgetTerminator
+import com.github.mbuzdalov.patchga.infra.CheapFixedBudgetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.MeanAndStandardDeviation
 
@@ -10,7 +10,10 @@ import java.util.Random
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 object KnapsackQualityMeasurements:
-  private def algorithmList(name: String): Seq[(String, Optimizer.Any)] =
+  private type SupportedOptimizer = Optimizer:
+    type RequiredConfig >: Problems.MinimalRequirements
+  
+  private def algorithmList(name: String): Seq[(String, SupportedOptimizer)] =
     name match
       case "default" => Seq(
         "RLS" -> OnePlusOneEA.randomizedLocalSearch,
@@ -43,8 +46,13 @@ object KnapsackQualityMeasurements:
           val rng = new Random(134235253 * (i + 132))
           val weights, values = IArray.fill(n)(10000 + rng.nextInt(10000))
           val capacity = weights.sum / 2
-          val problem = Problems.incrementalKnapsackFB(weights, values, capacity, budget, allowDuplicates = true, disableDiscard = false)
-          val rawFitness = FixedBudgetTerminator.runUntilBudgetReached(algo)(problem).fitness
+          // We have to use duplicates = true here.
+          // Otherwise:
+          // - algorithms that are caught in a local optimum appear stuck because duplicates do not consume budget,
+          // - algorithms stuck on a plateau and capable of discarding do not appear stuck (they use budget to recreate neighbors),
+          // - algorithms that don't discard also appear stuck as they exhaust their vicinity and resample repeatedly.
+          val problem = Problems.incrementalKnapsackFB(weights, values, capacity, allowDuplicates = true, disableDiscard = false)
+          val rawFitness = CheapFixedBudgetTerminator.runUntilBudgetReached(algo, problem, budget)
           if rawFitness.isValid then rawFitness.sumValues else 0
       val results = tasks.map(_.get()).sorted
       val evaluationStats = new MeanAndStandardDeviation(nRuns)
