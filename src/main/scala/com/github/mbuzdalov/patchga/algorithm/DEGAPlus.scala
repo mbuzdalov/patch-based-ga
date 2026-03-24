@@ -10,7 +10,7 @@ import scala.collection.mutable.ArrayBuffer
 object DEGAPlus extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
   
-  override def optimize(config: FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider): Nothing =
+  override def optimize(config: RequiredConfig): Nothing =
     import config.*
     
     val n = maximumPatchSize
