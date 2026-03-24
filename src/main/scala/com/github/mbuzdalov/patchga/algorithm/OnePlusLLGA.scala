@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.algorithm
 
-import com.github.mbuzdalov.patchga.config.{FitnessComparator, FitnessType, MaximumPatchSize, Population, RandomProvider}
+import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
 import com.github.mbuzdalov.patchga.util.Loops
 
