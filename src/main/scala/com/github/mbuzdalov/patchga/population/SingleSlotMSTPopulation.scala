@@ -99,7 +99,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
         if allowDuplicates then
           buildPathToNode(null, currentNode, parent)
           rewindMasterIndividualByPath()
-          recordEvaluation(masterIndividual, computedFitness)
+          recordEvaluation(masterIndividual, parent.fitness)
         parent
       else
         buildPathToNode(null, currentNode, parent)
