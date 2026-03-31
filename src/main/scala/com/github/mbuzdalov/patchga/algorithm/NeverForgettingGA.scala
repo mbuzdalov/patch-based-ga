@@ -11,9 +11,12 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
                         mutationDistanceBeta: Double,
                         crossoverProbability: Double,
                         crossoverParentMinimumDistanceBeta: Double,
+                        crossoverParentMaximumDistance: Option[Int],
                         secondParentSelectionBeta: Double,
                         crossoverDistanceSource: Int => IntegerDistribution) extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
+  
+  crossoverParentMaximumDistance.foreach(d => require(d >= 2, "Maximum distance cannot be smaller than 2"))
   
   override def optimize(config: RequiredConfig): Nothing =
     import config.*
@@ -46,20 +49,25 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
     def sampleFirstParent(): IndividualHandle = sampleParent(nodesSorted, firstParentSelectionBeta)
     def sampleSecondParent(): IndividualHandle = sampleParent(crossoverSecondParentBuffer, secondParentSelectionBeta)
     
+    def crossoverDistanceOK(d: Int): Boolean = crossoverParentMaximumDistance match
+      case None => 2 <= d
+      case Some(dMax) => 2 <= d && d <= dMax
+    
     @tailrec
     def sampleFirstParentWithDistantEnoughNeighbors(): IndividualHandle =
       val parent = sampleFirstParent()
       distanceBuffer.clear()
       collectDistanceToHandles(parent): (_, d) => 
-        if d > 1 && !distanceSeen(d) then
+        if crossoverDistanceOK(d) && !distanceSeen(d) then
           distanceSeen(d) = true
           distanceBuffer.addOne(d)
       distanceBuffer.foreach(v => distanceSeen(v) = false)
       if distanceBuffer.isEmpty then sampleFirstParentWithDistantEnoughNeighbors() else parent
     
+    var crossoverEnabled = false
+    
     Loops.forever:
-      // with three different nodes, at least two of them have distance > 1.
-      val nextNode = if nodesSorted.size >= 3 && random.nextDouble() < crossoverProbability then
+      val nextNode = if crossoverEnabled && random.nextDouble() < crossoverProbability then
         // crossover
         // sample a parent such that it has individuals at distance > 1
         val firstParent = sampleFirstParentWithDistantEnoughNeighbors()
@@ -81,5 +89,12 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
         val change = PowerLawDistribution.sample(maximumPatchSize, mutationDistanceBeta, random)
         mutateH(sampleFirstParent(), change)
       end nextNode
-      
-      if nextNode.referenceCount == 1 then insertionSortAdd(nextNode)
+
+      // if the just-sampled node is new, do some bookkeeping
+      if nextNode.referenceCount == 1 then
+        // add it to the pool  
+        insertionSortAdd(nextNode)
+        // if we didn't have a legitimate pair of parents for crossover, check whether the new individual can make one      
+        if !crossoverEnabled then
+          collectDistanceToHandles(nextNode): (_, d) =>
+            crossoverEnabled |= crossoverDistanceOK(d)

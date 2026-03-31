@@ -99,11 +99,16 @@ object DistinctSamplesToOptimality:
       case Some(otherString) =>
         throw IllegalArgumentException("NFGA: parameter 'crossover-distance' is not one of: 'uniform-crossover', 'uniform-distance', 'symmetric-heavy(beta)' for beta in [1;3]")
     
+    val crossoverMaxDistance = params.get("crossover-parent-maximum-distance") match
+      case None => None
+      case Some(v) => Some(v.toInt(1, Int.MaxValue, "NFGA: parameter 'crossover-parent-maximum-distance', if present, should be a positive int"))
+    
     NeverForgettingGA(
       firstParentSelectionBeta = "first-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
       mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       crossoverProbability = "crossover-probability".doubleFrom(params, 0, 1, "NFGA: "),
       crossoverParentMinimumDistanceBeta = "crossover-parent-minimum-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
+      crossoverParentMaximumDistance = crossoverMaxDistance,
       secondParentSelectionBeta = "second-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
       crossoverDistanceSource = cdBeta,
     )
