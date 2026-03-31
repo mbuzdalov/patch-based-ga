@@ -44,7 +44,7 @@ trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean) 
     if handle.referenceCount == 0 then
       allIndividuals.remove(handle)
   
-  override def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
+  override def collectDistanceToHandles(base: IndividualHandle)(consumer: (IndividualHandle, Int) => Unit): Unit =
     for ind <- allIndividuals do
       consumer(ind, distance(base.individual, ind.individual))
   

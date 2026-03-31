@@ -22,9 +22,9 @@ object DEGAPlus extends Optimizer:
     
     def distanceGreater(base: IndividualHandle, h1: IndividualHandle, h2: IndividualHandle): Boolean =
       var d1, d2 = -1
-      collectDistanceToHandles(base, (h, i) =>
+      collectDistanceToHandles(base): (h, i) =>
         if h == h1 then d1 = i /* no 'else' as sometimes h1 == h2 */
-        if h == h2 then d2 = i)
+        if h == h2 then d2 = i
       assert(d1 >= 0)
       assert(d2 >= 0)
       d1 > d2

@@ -14,5 +14,5 @@ trait Population extends EvaluationLogger:
   def fitnessH(handle: IndividualHandle): Fitness
   def discardH(handle: IndividualHandle): Unit
 
-  def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit
+  def collectDistanceToHandles(base: IndividualHandle)(consumer: (IndividualHandle, Int) => Unit): Unit
   def collectHandlesAtDistance(base: IndividualHandle, distancePredicate: Int => Boolean, buffer: ArrayBuffer[IndividualHandle]): Unit

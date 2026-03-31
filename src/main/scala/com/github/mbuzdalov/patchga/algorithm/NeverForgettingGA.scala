@@ -50,9 +50,10 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
     def sampleFirstParentWithDistantEnoughNeighbors(): IndividualHandle =
       val parent = sampleFirstParent()
       distanceBuffer.clear()
-      collectDistanceToHandles(parent, (_, d) => if d > 1 && !distanceSeen(d) then
-        distanceSeen(d) = true
-        distanceBuffer.addOne(d))
+      collectDistanceToHandles(parent): (_, d) => 
+        if d > 1 && !distanceSeen(d) then
+          distanceSeen(d) = true
+          distanceBuffer.addOne(d)
       distanceBuffer.foreach(v => distanceSeen(v) = false)
       if distanceBuffer.isEmpty then sampleFirstParentWithDistantEnoughNeighbors() else parent
     

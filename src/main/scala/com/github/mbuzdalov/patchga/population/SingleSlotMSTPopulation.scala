@@ -243,7 +243,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     rewindMasterIndividualByPath()
     clearMutablePatch(masterPatch)
 
-  override def collectDistanceToHandles(base: IndividualHandle, consumer: (IndividualHandle, Int) => Unit): Unit =
+  override def collectDistanceToHandles(base: IndividualHandle)(consumer: (IndividualHandle, Int) => Unit): Unit =
     prepareCollection(base)
     collectDistanceToHandlesImpl(null, currentNode, consumer)
 
