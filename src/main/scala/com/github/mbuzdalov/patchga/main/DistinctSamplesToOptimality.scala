@@ -2,7 +2,7 @@ package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.{DEGAPlus, MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
 import com.github.mbuzdalov.patchga.config.FitnessType
-import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
+import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution, UniformDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
@@ -86,13 +86,26 @@ object DistinctSamplesToOptimality:
         
   private def readNFGA(r: KindaYamlReader): SupportedOptimizer =
     val params = readParams(r)
+    val cdBeta = params.get("crossover-distance") match
+      case None =>
+        throw IllegalArgumentException("NFGA: parameter 'crossover-distance' is not set")
+      case Some("uniform-crossover") =>
+        (d: Int) => BinomialDistribution(d - 2, 0.5) + 1
+      case Some("uniform-distance") =>
+        (d: Int) => UniformDistribution(1, d - 1)
+      case Some(s"symmetric-heavy($beta)") =>
+        val betaValue = beta.toDouble(1, 3, "NFGA: parameter 'crossover-distance' is symmetric-heavy(beta) for beta is not in [1;3]")
+        (d: Int) => PowerLawDistribution(d - 1, betaValue).symmetric(d)
+      case Some(otherString) =>
+        throw IllegalArgumentException("NFGA: parameter 'crossover-distance' is not one of: 'uniform-crossover', 'uniform-distance', 'symmetric-heavy(beta)' for beta in [1;3]")
+    
     NeverForgettingGA(
       firstParentSelectionBeta = "first-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
       mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       crossoverProbability = "crossover-probability".doubleFrom(params, 0, 1, "NFGA: "),
       crossoverParentMinimumDistanceBeta = "crossover-parent-minimum-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       secondParentSelectionBeta = "second-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
-      crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 0, 3, "NFGA: "),
+      crossoverDistanceSource = cdBeta,
     )
   
   private def readOnePlusLLGA(r: KindaYamlReader): SupportedOptimizer =

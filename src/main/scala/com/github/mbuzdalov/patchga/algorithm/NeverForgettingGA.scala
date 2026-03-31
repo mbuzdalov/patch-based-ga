@@ -1,7 +1,7 @@
 package com.github.mbuzdalov.patchga.algorithm
 
 import com.github.mbuzdalov.patchga.config.*
-import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
+import com.github.mbuzdalov.patchga.distribution.{IntegerDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.util.Loops
 
 import scala.annotation.tailrec
@@ -12,7 +12,7 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
                         crossoverProbability: Double,
                         crossoverParentMinimumDistanceBeta: Double,
                         secondParentSelectionBeta: Double,
-                        crossoverDistanceBeta: Double) extends Optimizer:
+                        crossoverDistanceSource: Int => IntegerDistribution) extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
   
   override def optimize(config: RequiredConfig): Nothing =
@@ -70,10 +70,11 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
         crossoverSecondParentBuffer.sortInPlace()(using inverseFitnessOrdering)
         // sample crossover distance and perform crossover
         val secondParent = sampleSecondParent()
-        val crossoverDistance = PowerLawDistribution.sample(secondParentDistance - 1, crossoverDistanceBeta, random)
-        if random.nextBoolean()
-        then crossoverH(firstParent, secondParent, _ => crossoverDistance, _ => 0)
-        else crossoverH(secondParent, firstParent, _ => crossoverDistance, _ => 0)
+        val crossoverDistanceDistribution = crossoverDistanceSource(secondParentDistance)
+        assert(crossoverDistanceDistribution.min >= 1)
+        assert(crossoverDistanceDistribution.max < secondParentDistance)
+        val crossoverDistance = crossoverDistanceDistribution.sample(random)
+        crossoverH(firstParent, secondParent, _ => crossoverDistance, _ => 0)
       else
         // mutation
         val change = PowerLawDistribution.sample(maximumPatchSize, mutationDistanceBeta, random)
