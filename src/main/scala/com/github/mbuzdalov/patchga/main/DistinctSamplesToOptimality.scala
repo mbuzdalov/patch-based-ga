@@ -292,7 +292,8 @@ object DistinctSamplesToOptimality:
       val algorithms = readAlgorithms(r)
       val problems = readProblems(r)
       val runtime = readRuntime(r)
-      val runFmtString = s"%0${s"${runtime.nRuns - 1}".length}d.txt"
+      val lengthOfRunNumber = (runtime.nRuns - 1).toString.length
+      val runFmtString = s"%0${lengthOfRunNumber}d.txt"
       val nProcessors = if runtime.nProcessors > 0 then runtime.nProcessors else Runtime.getRuntime.availableProcessors()
       val runInfoMap = scala.collection.mutable.HashMap[ProblemAlgorithmPair, RunInfo]()
 
@@ -337,6 +338,9 @@ object DistinctSamplesToOptimality:
               if allowance.contains("all") || allowance.contains(algoName)
             do
               val key = ProblemAlgorithmPair(probName, algoName)
+              val directory = Paths.get(args(0).replace(".yaml", "")).resolve(probName).resolve(algoName)
+              Files.createDirectories(directory)
+
               val runInfo = runInfoMap.synchronized(runInfoMap.getOrElseUpdate(key, RunInfo()))
               val task: Runnable = () =>
                 val t0 = System.currentTimeMillis()
@@ -346,8 +350,6 @@ object DistinctSamplesToOptimality:
                 val reached = FixedTargetTerminator.runUntilTargetReached(algorithm, pat.config, pat.target, pat.nRequiredHits)
                 val time = System.currentTimeMillis() - t0
                 val fitnessRecord = fitnessValues.map(_.toString).asJava
-                val directory = Paths.get(args(0).replace(".yaml", "")).resolve(probName).resolve(algoName)
-                Files.createDirectories(directory)
                 Files.write(directory.resolve(runFmtString.format(run)), fitnessRecord)
                 runInfoMap.synchronized:
                   log.write(s"$algoName on $probName: run $run finished, ${runInfo.results.size + 1} out of ${runtime.nRuns}, in $time ms, result ${reached.nEvaluations}\n")
