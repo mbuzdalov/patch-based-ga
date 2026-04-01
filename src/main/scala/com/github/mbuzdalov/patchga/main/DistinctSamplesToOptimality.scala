@@ -115,7 +115,7 @@ object DistinctSamplesToOptimality:
       crossoverProbability = "crossover-probability".doubleFrom(params, 0, 1, "NFGA: "),
       crossoverParentMinimumDistanceBeta = "crossover-parent-minimum-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       crossoverParentMaximumDistance = crossoverMaxDistance,
-      secondParentSelectionBeta = "second-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
+      secondParentSelectionBeta = "second-parent-selection-beta".doubleFrom(params, 0, 3, "NFGA: "),
       crossoverDistanceSource = cdBeta,
     )
   
