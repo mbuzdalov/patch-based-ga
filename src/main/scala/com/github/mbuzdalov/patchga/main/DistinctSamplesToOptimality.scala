@@ -96,6 +96,12 @@ object DistinctSamplesToOptimality:
       case Some(s"symmetric-heavy($beta)") =>
         val betaValue = beta.toDouble(1, 3, "NFGA: parameter 'crossover-distance' is symmetric-heavy(beta) for beta is not in [1;3]")
         (d: Int) => PowerLawDistribution(d - 1, betaValue).symmetric(d)
+      case Some(s"better-biased-heavy($beta)") =>
+        val betaValue = beta.toDouble(1, 3, "NFGA: parameter 'crossover-distance' is better-biased-heavy(beta) for beta is not in [1;3]")
+        (d: Int) => PowerLawDistribution(d - 1, betaValue)
+      case Some(s"worse-biased-heavy($beta)") =>
+        val betaValue = beta.toDouble(1, 3, "NFGA: parameter 'crossover-distance' is worse-biased-heavy(beta) for beta is not in [1;3]")
+        (d: Int) => d - PowerLawDistribution(d - 1, betaValue)
       case Some(otherString) =>
         throw IllegalArgumentException("NFGA: parameter 'crossover-distance' is not one of: 'uniform-crossover', 'uniform-distance', 'symmetric-heavy(beta)' for beta in [1;3]")
     
