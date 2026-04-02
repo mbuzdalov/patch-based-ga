@@ -2,7 +2,7 @@ package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.{DEGAPlus, MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
 import com.github.mbuzdalov.patchga.config.FitnessType
-import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution, UniformDistribution}
+import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, ConstantDistribution, PowerLawDistribution, UniformDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
@@ -96,6 +96,10 @@ object DistinctSamplesToOptimality:
       case Some(s"symmetric-heavy($beta)") =>
         val betaValue = beta.toDouble(1, 3, "NFGA: parameter 'crossover-distance' is symmetric-heavy(beta) for beta is not in [1;3]")
         (d: Int) => PowerLawDistribution(d - 1, betaValue).symmetric(d)
+      case Some("one-from-better") =>
+        (d: Int) => ConstantDistribution(1)
+      case Some("one-from-worse") =>
+        (d: Int) => ConstantDistribution(d - 1)
       case Some(s"better-biased-heavy($beta)") =>
         val betaValue = beta.toDouble(1, 3, "NFGA: parameter 'crossover-distance' is better-biased-heavy(beta) for beta is not in [1;3]")
         (d: Int) => PowerLawDistribution(d - 1, betaValue)
