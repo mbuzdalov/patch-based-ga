@@ -99,13 +99,13 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
         if allowDuplicates then
           buildPathToNode(null, currentNode, parent)
           rewindMasterIndividualByPath()
-          recordEvaluation(masterIndividual, parent.fitness)
+          recordEvaluation(masterIndividual, parent.fitness, parent)
         parent
       else
         buildPathToNode(null, currentNode, parent)
         rewindMasterIndividualByPath()
         computedFitness = computeFitnessFunctionIncrementally(masterIndividual, parent.fitness, shortestEdge.reverse.patch)
-        recordEvaluation(masterIndividual, computedFitness)
+        recordEvaluation(masterIndividual, computedFitness, this)
         currentNode = this
         this
 
@@ -130,7 +130,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     if currentNode == null then
       // This happens only when we are requested for the first time
       currentNode = KnownFitnessNode(computeFitness(masterIndividual), IndividualHandleProto.RandomCreation)
-      recordEvaluation(masterIndividual, currentNode.fitness)
+      recordEvaluation(masterIndividual, currentNode.fitness, currentNode)
       currentNode
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow

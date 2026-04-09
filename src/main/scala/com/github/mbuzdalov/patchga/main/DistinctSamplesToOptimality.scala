@@ -350,7 +350,7 @@ object DistinctSamplesToOptimality:
                 val t0 = System.currentTimeMillis()
                 val pat = problemFun()
                 val fitnessValues = ArrayBuffer[pat.config.Fitness]()
-                pat.config.addEvaluationListener((i, f) => fitnessValues.addOne(f))
+                pat.config.addEvaluationListener((i, f, _) => fitnessValues.addOne(f))
                 val reached = FixedTargetTerminator.runUntilTargetReached(algorithm, pat.config, pat.target, pat.nRequiredHits)
                 val time = System.currentTimeMillis() - t0
                 val fitnessRecord = fitnessValues.map(_.toString).asJava

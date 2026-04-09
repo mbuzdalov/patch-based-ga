@@ -27,4 +27,4 @@ class TimePatchBudgetCorrelation(stepsToAverage: Int, config: IndividualType & F
       lastEntryTime = currTime
       sumPatchSizesOverPeriod = 0
 
-  config.addEvaluationListener((ind, fit) => ping())
+  config.addEvaluationListener((ind, fit, hdl) => ping())

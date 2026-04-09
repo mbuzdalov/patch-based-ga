@@ -7,7 +7,7 @@ object FixedTargetTerminator:
   class TargetReached[Fitness](val fitness: Fitness, val nEvaluations: Long)
   
   def runUntilTargetReached(optimizer: Optimizer, 
-                            config: optimizer.RequiredConfig & EvaluationLogger & IndividualType & FitnessType & FitnessComparator,
+                            config: optimizer.RequiredConfig & Population & IndividualType & FitnessType & FitnessComparator,
                             targetFitness: config.Fitness,
                             nTargetHitsRequired: Int = 1): TargetReached[config.Fitness] =
     var nFitnessEvaluations: Long = 0
@@ -15,7 +15,7 @@ object FixedTargetTerminator:
     val TargetReachedEx = RuntimeException("Target Reached")
     var nTargetHits = 0
     
-    config.addEvaluationListener: (ind, fitness) =>
+    config.addEvaluationListener: (ind, fitness, handle) =>
       nFitnessEvaluations += 1
       if config.compare(fitness, targetFitness) >= 0 then
         bestFitness = Some(fitness)

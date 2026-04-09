@@ -5,13 +5,13 @@ import com.github.mbuzdalov.patchga.config.*
 
 object CheapFixedBudgetTerminator:
   def runUntilBudgetReached(optimizer: Optimizer, 
-                            config: optimizer.RequiredConfig & IndividualType & FitnessType & FitnessComparator & EvaluationLogger,
+                            config: optimizer.RequiredConfig & Population & IndividualType & FitnessType & FitnessComparator,
                             maxEvaluations: Long): config.Fitness =
     var nFitnessEvaluations: Long = 0
     var bestFitness: Option[config.Fitness] = None
     val BudgetReached = RuntimeException("Budget Reached")
     
-    config.addEvaluationListener: (ind, fitness) =>
+    config.addEvaluationListener: (ind, fitness, handle) =>
       if nFitnessEvaluations == 0 || config.compare(fitness, bestFitness.get) > 0 then
         bestFitness = Some(fitness)
       nFitnessEvaluations += 1

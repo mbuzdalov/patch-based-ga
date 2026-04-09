@@ -13,7 +13,7 @@ trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean, 
   class FitIndividual(val individual: Individual, val genealogy: Genealogy) extends IndividualHandleProto[FitIndividual]:
     var referenceCount: Int = 1
     val fitness: Fitness = computeFitness(individual)
-    recordEvaluation(individual, fitness)
+    recordEvaluation(individual, fitness, this)
 
   private val allIndividuals = new scala.collection.mutable.HashSet[FitIndividual]()
   private def handleFor(ind: Individual, genealogy: Genealogy): FitIndividual =

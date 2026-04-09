@@ -2,7 +2,7 @@ package com.github.mbuzdalov.patchga.config
 
 import scala.collection.mutable.ArrayBuffer
 
-trait Population extends EvaluationLogger:
+trait Population:
   self: IndividualType & FitnessType =>
 
   type IndividualHandle <: IndividualHandleProto[IndividualHandle]
@@ -16,3 +16,11 @@ trait Population extends EvaluationLogger:
 
   def collectDistanceToHandles(base: IndividualHandle)(consumer: (IndividualHandle, Int) => Unit): Unit
   def collectHandlesAtDistance(base: IndividualHandle, distancePredicate: Int => Boolean, buffer: ArrayBuffer[IndividualHandle]): Unit
+
+  private val listeners = ArrayBuffer[(Individual, Fitness, IndividualHandle) => Unit]()
+  
+  def addEvaluationListener(listener: (Individual, Fitness, IndividualHandle) => Unit): Unit =
+    listeners.addOne(listener)
+  
+  protected final def recordEvaluation(individual: Individual, fitness: Fitness, handle: IndividualHandle): Unit =
+    listeners.foreach(_(individual, fitness, handle))
