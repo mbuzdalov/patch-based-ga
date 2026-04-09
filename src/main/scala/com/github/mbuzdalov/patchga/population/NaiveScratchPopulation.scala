@@ -8,15 +8,16 @@ trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean, 
   self: IndividualType & FitnessType & NewRandomIndividual & IndividualDistance
     & SimpleMutationOperator & SimpleCrossoverOperator & SimpleFitnessFunction =>
 
-  private type Genealogy = IndividualHandleProto.Genealogy[IndividualHandle]
+  private type GenT = IndividualHandleProto.Genealogy[IndividualHandle]
+  import IndividualHandleProto.Genealogy.*
   
-  class FitIndividual(val individual: Individual, val genealogy: Genealogy) extends IndividualHandleProto[FitIndividual]:
+  class FitIndividual(val individual: Individual, val genealogy: GenT) extends IndividualHandleProto[FitIndividual]:
     var referenceCount: Int = 1
     val fitness: Fitness = computeFitness(individual)
     recordEvaluation(individual, fitness, this)
 
   private val allIndividuals = new scala.collection.mutable.HashSet[FitIndividual]()
-  private def handleFor(ind: Individual, genealogy: Genealogy): FitIndividual =
+  private def handleFor(ind: Individual, genealogy: GenT): FitIndividual =
     if allowDuplicates then
       val result = FitIndividual(ind, genealogy)
       allIndividuals.addOne(result)
@@ -33,11 +34,10 @@ trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean, 
   override type IndividualHandle = FitIndividual
 
   override def newRandomIndividualH(): IndividualHandle =
-    handleFor(newRandomIndividual(), IndividualHandleProto.RandomCreation)
+    handleFor(newRandomIndividual(), RandomCreation)
 
   override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
-    handleFor(mutate(handle.individual, distance), 
-      if supportGenealogy then IndividualHandleProto.Mutation(handle, distance) else IndividualHandleProto.Unknown)
+    handleFor(mutate(handle.individual, distance), if supportGenealogy then Mutation(handle, distance) else Unknown)
 
   override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
                           inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
@@ -45,12 +45,12 @@ trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean, 
       val idbInterceptor = NaiveScratchPopulation.FunctorInterceptor(inDifferingBits)
       val isbInterceptor = NaiveScratchPopulation.FunctorInterceptor(inSameBits)
       val resultIndividual = crossover(mainParent.individual, auxParent.individual, idbInterceptor, isbInterceptor)
-      handleFor(resultIndividual, IndividualHandleProto.Crossover(
+      handleFor(resultIndividual, Crossover(
         mainParent, auxParent,
         nSameBits = isbInterceptor.lastArgument, nDiffBits = idbInterceptor.lastArgument,
         changedInSame = isbInterceptor.lastResult, changedInDiff = idbInterceptor.lastResult
       ))
-    else handleFor(crossover(mainParent.individual, auxParent.individual, inDifferingBits, inSameBits), IndividualHandleProto.Unknown)
+    else handleFor(crossover(mainParent.individual, auxParent.individual, inDifferingBits, inSameBits), Unknown)
   
   override def fitnessH(handle: IndividualHandle): Fitness = handle.fitness
   override def discardH(handle: IndividualHandle): Unit = if !disableDiscard then

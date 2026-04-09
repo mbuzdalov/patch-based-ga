@@ -76,10 +76,12 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
         if otherNode.refCount == 0 then
           otherNode.tryDisconnect()
   
-  private type Genealogy = IndividualHandleProto.Genealogy[Node]
-  private class KnownFitnessNode(val fitness: Fitness, val genealogy: Genealogy) extends Node
+  private type GenT = IndividualHandleProto.Genealogy[Node]
+  import IndividualHandleProto.Genealogy.*
 
-  private class LateFitnessEvaluationNode(val genealogy: Genealogy) extends Node:
+  private class KnownFitnessNode(val fitness: Fitness, val genealogy: GenT) extends Node
+
+  private class LateFitnessEvaluationNode(val genealogy: GenT) extends Node:
     private var shortestEdge: Edge = uninitialized
     private var computedFitness: Fitness = uninitialized
     override private[SingleSlotMSTPopulation] def addEdge(edge: Edge): Unit =
@@ -129,7 +131,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
   override def newRandomIndividualH(): IndividualHandle =
     if currentNode == null then
       // This happens only when we are requested for the first time
-      currentNode = KnownFitnessNode(computeFitness(masterIndividual), IndividualHandleProto.RandomCreation)
+      currentNode = KnownFitnessNode(computeFitness(masterIndividual), RandomCreation)
       recordEvaluation(masterIndividual, currentNode.fitness, currentNode)
       currentNode
     else
@@ -144,7 +146,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     buildPathToNode(null, currentNode, handle)
     rewindMasterIndividualByPath()
     initializeMutablePatchFromDistance(masterPatch, distance)
-    newNodeFromPatch(if isSimulatedRandom then IndividualHandleProto.RandomCreation else IndividualHandleProto.Mutation(handle, distance))
+    newNodeFromPatch(if isSimulatedRandom then RandomCreation else Mutation(handle, distance))
   
   override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
     mutateHImpl(handle, distance, isSimulatedRandom = false)
@@ -164,9 +166,9 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     val changedInSame = inSameBits(nSameBits)
     val nBitsToRemoveFromPatch = nDiffBits - changedInDiff
     applyCrossoverRequest(masterPatch, nBitsToRemoveFromPatch, changedInSame)
-    newNodeFromPatch(IndividualHandleProto.Crossover(mainParent, auxParent, nSameBits, nDiffBits, changedInSame, changedInDiff))
+    newNodeFromPatch(Crossover(mainParent, auxParent, nSameBits, nDiffBits, changedInSame, changedInDiff))
 
-  private def newNodeFromPatch(genealogy: Genealogy): IndividualHandle =
+  private def newNodeFromPatch(genealogy: GenT): IndividualHandle =
     val newNode = new LateFitnessEvaluationNode(genealogy)
     rebuildMSTOnInsertion(null, currentNode, newNode) match
       case e: Edge => e.addMe()
