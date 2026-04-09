@@ -11,15 +11,16 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
                         mutationDistanceBeta: Double,
                         crossoverProbability: Double,
                         crossoverParentMinimumDistanceBeta: Double,
-                        crossoverParentMaximumDistance: Option[Int],
+                        crossoverParentMaximumDistance: Option[Int => Int],
                         secondParentSelectionBeta: Double,
                         crossoverDistanceSource: Int => IntegerDistribution) extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
   
-  crossoverParentMaximumDistance.foreach(d => require(d >= 2, "Maximum distance cannot be smaller than 2"))
-  
   override def optimize(config: RequiredConfig): Nothing =
     import config.*
+
+    val crossoverParentDistanceCap = crossoverParentMaximumDistance.map(f => f(maximumPatchSize))    
+    crossoverParentDistanceCap.foreach(d => require(d >= 2, "Maximum distance cannot be smaller than 2"))
     
     val crossoverSecondParentBuffer = new ArrayBuffer[IndividualHandle]()
     val distanceBuffer = new ArrayBuffer[Int]()
@@ -49,7 +50,7 @@ class NeverForgettingGA(firstParentSelectionBeta: Double,
     def sampleFirstParent(): IndividualHandle = sampleParent(nodesSorted, firstParentSelectionBeta)
     def sampleSecondParent(): IndividualHandle = sampleParent(crossoverSecondParentBuffer, secondParentSelectionBeta)
     
-    def crossoverDistanceOK(d: Int): Boolean = crossoverParentMaximumDistance match
+    def crossoverDistanceOK(d: Int): Boolean = crossoverParentDistanceCap match
       case None => 2 <= d
       case Some(dMax) => 2 <= d && d <= dMax
     

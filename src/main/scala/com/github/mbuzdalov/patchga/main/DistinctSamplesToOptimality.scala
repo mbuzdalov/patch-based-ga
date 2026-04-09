@@ -111,7 +111,11 @@ object DistinctSamplesToOptimality:
     
     val crossoverMaxDistance = params.get("crossover-parent-maximum-distance") match
       case None => None
-      case Some(v) => Some(v.toInt(1, Int.MaxValue, "NFGA: parameter 'crossover-parent-maximum-distance', if present, should be a positive int"))
+      case Some("log") =>
+        Some((n: Int) => math.max(2, math.log(n + 1) / math.log(2)).toInt)
+      case Some(v) =>
+        val theConst = v.toInt(1, Int.MaxValue, "NFGA: parameter 'crossover-parent-maximum-distance', if present, should be an int >= 2 or 'log'")
+        Some((n: Int) => theConst)
     
     NeverForgettingGA(
       firstParentSelectionBeta = "first-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
