@@ -22,7 +22,7 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
       target.addEdge(reverse)
       reverse.target.addEdge(this)
 
-  abstract class Node extends WithReferenceCount:
+  abstract class Node extends IndividualHandleProto[Node]:
     private[SingleSlotMSTPopulation] var refCount = 1
     private val edges = new ArrayBuffer[Edge](2)
     private var nextEdgeInPath: Edge = uninitialized

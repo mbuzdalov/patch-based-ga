@@ -5,7 +5,7 @@ import scala.collection.mutable.ArrayBuffer
 trait Population extends EvaluationLogger:
   self: IndividualType & FitnessType =>
 
-  type IndividualHandle <: WithReferenceCount
+  type IndividualHandle <: IndividualHandleProto[IndividualHandle]
 
   def newRandomIndividualH(): IndividualHandle
   def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle
