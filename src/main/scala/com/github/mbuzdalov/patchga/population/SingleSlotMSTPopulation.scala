@@ -3,8 +3,8 @@ package com.github.mbuzdalov.patchga.population
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.compiletime.uninitialized
-
 import com.github.mbuzdalov.patchga.config.*
+import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.util.Loops
 
 trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean) extends Population:
@@ -75,11 +75,11 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
         otherNode.removeEdge(theEdge.reverse)
         if otherNode.refCount == 0 then
           otherNode.tryDisconnect()
+  
+  private type Genealogy = IndividualHandleProto.Genealogy[Node]
+  private class KnownFitnessNode(val fitness: Fitness, val genealogy: Genealogy) extends Node
 
-
-  private class KnownFitnessNode(val fitness: Fitness) extends Node
-
-  private class LateFitnessEvaluationNode extends Node:
+  private class LateFitnessEvaluationNode(val genealogy: Genealogy) extends Node:
     private var shortestEdge: Edge = uninitialized
     private var computedFitness: Fitness = uninitialized
     override private[SingleSlotMSTPopulation] def addEdge(edge: Edge): Unit =
@@ -129,24 +129,25 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
   override def newRandomIndividualH(): IndividualHandle =
     if currentNode == null then
       // This happens only when we are requested for the first time
-      currentNode = KnownFitnessNode(computeFitness(masterIndividual))
+      currentNode = KnownFitnessNode(computeFitness(masterIndividual), IndividualHandleProto.RandomCreation)
       recordEvaluation(masterIndividual, currentNode.fitness)
       currentNode
     else
       // Otherwise, there is already an existing tree, so we have to add the new individual somehow
       // We basically simulate mutation from the current node.
-      // Current impl of binomial distribution is somewhat too slow for Bin(n, 0.5), so we do the naive way.
-      var distance = 0
-      Loops.repeat(maximumPatchSize)(if random.nextBoolean() then distance += 1)
-      mutateH(currentNode, distance)
+      val distance = BinomialDistribution(maximumPatchSize, 0.5).sample(random)
+      mutateHImpl(currentNode, distance, isSimulatedRandom = true)
     end if
 
-  override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
+  private def mutateHImpl(handle: IndividualHandle, distance: Int, isSimulatedRandom: Boolean): IndividualHandle =
     assert(handle.refCount > 0)
     buildPathToNode(null, currentNode, handle)
     rewindMasterIndividualByPath()
     initializeMutablePatchFromDistance(masterPatch, distance)
-    newNodeFromPatch()
+    newNodeFromPatch(if isSimulatedRandom then IndividualHandleProto.RandomCreation else IndividualHandleProto.Mutation(handle, distance))
+  
+  override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
+    mutateHImpl(handle, distance, isSimulatedRandom = false)
 
   override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
                           inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
@@ -157,14 +158,16 @@ trait SingleSlotMSTPopulation(allowDuplicates: Boolean, disableDiscard: Boolean)
     buildPathToNode(null, currentNode, auxParent)
     clearMutablePatch(masterPatch)
     appendForwardPathToMasterPatch(currentNode)
-    val interParentDistance = mutablePatchSize(masterPatch)
-    val desiredInDifferent = inDifferingBits(interParentDistance)
-    val desiredInSame = inSameBits(maximumPatchSize - interParentDistance) // very brittle!
-    applyCrossoverRequest(masterPatch, interParentDistance - desiredInDifferent, desiredInSame)
-    newNodeFromPatch()
+    val nDiffBits = mutablePatchSize(masterPatch)
+    val nSameBits = maximumPatchSize - nDiffBits
+    val changedInDiff = inDifferingBits(nDiffBits)
+    val changedInSame = inSameBits(nSameBits)
+    val nBitsToRemoveFromPatch = nDiffBits - changedInDiff
+    applyCrossoverRequest(masterPatch, nBitsToRemoveFromPatch, changedInSame)
+    newNodeFromPatch(IndividualHandleProto.Crossover(mainParent, auxParent, nSameBits, nDiffBits, changedInSame, changedInDiff))
 
-  private def newNodeFromPatch(): IndividualHandle =
-    val newNode = new LateFitnessEvaluationNode()
+  private def newNodeFromPatch(genealogy: Genealogy): IndividualHandle =
+    val newNode = new LateFitnessEvaluationNode(genealogy)
     rebuildMSTOnInsertion(null, currentNode, newNode) match
       case e: Edge => e.addMe()
       case _: Int => addEdgeAtTheEndOfChain(currentNode, newNode)

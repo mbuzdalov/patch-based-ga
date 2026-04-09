@@ -1,7 +1,6 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.config.FitnessType
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
@@ -39,7 +38,7 @@ object OneMaxWallClockTimeMeasurements:
     if !compactOutput then println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
-      case "naive" => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false)
+      case "naive" => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false)
       case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false, disableDiscard = false)
 
     Loops.repeat(20):

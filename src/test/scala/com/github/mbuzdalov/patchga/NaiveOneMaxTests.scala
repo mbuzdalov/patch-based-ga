@@ -28,32 +28,57 @@ class NaiveOneMaxTests extends AnyFlatSpec with Matchers:
     val RunResults(evs, _) = run(optimizer, n)(problem(n))
     evs shouldBe expectedEvs +- (0.3 * expectedEvs)
 
-  "RLS on OneMax" should "work well with naive population" in
+  "RLS on OneMax" should "work well with naive population w/o genealogy" in
     simpleTest(n => n * math.log(n))
               (OnePlusOneEA.randomizedLocalSearch)
-              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
-
-  "(1+1) EA on OneMax" should "work well with naive population" in
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false))
+  
+  it should "work well with naive population with genealogy" in
+    simpleTest(n => n * math.log(n))
+              (OnePlusOneEA.randomizedLocalSearch)
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = true))
+  
+  "(1+1) EA on OneMax" should "work well with naive population w/o genealogy" in
     simpleTest(n => math.E * n * math.log(n))
               (OnePlusOneEA.withStandardBitMutation)
-              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
-
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false))
+  
+  it should "work well with naive population with genealogy" in
+    simpleTest(n => math.E * n * math.log(n))
+              (OnePlusOneEA.withStandardBitMutation)
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = true))
+  
   // Constants for (2+1) GA are taken from https://link.springer.com/article/10.1007/s00453-021-00893-w.
-
-  "(2+1) GA on OneMax" should "work well with naive population using c=1" in
+  
+  "(2+1) GA on OneMax" should "work well with naive population using c=1 w/o genealogy" in
     simpleTest(n => 2.224 * n * math.log(n))
               (MuPlusOneGA.withStandardBitMutation(2, 1.0, 1))
-              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
-
-  it should "work well with naive population using c=1.2122" in
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false))
+  
+  it should "work well with naive population using c=1 with genealogy" in
+    simpleTest(n => 2.224 * n * math.log(n))
+              (MuPlusOneGA.withStandardBitMutation(2, 1.0, 1))
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = true))
+  
+  it should "work well with naive population using c=1.2122 w/o genealogy" in
     simpleTest(n => 2.18417 * n * math.log(n))
               (MuPlusOneGA.withStandardBitMutation(2, 1.0, 1.2122))
-              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
-
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false))
+  
+  it should "work well with naive population using c=1.2122 with genealogy" in
+    simpleTest(n => 2.18417 * n * math.log(n))
+              (MuPlusOneGA.withStandardBitMutation(2, 1.0, 1.2122))
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = true))
+  
   // Constants for (10+1) GA are taken from https://link.springer.com/article/10.1007/s00453-020-00743-1,
   // but they underestimate the runtime for the used problem sizes.
-
-  "(10+1) GA on OneMax" should "work well with naive population" in
+  
+  "(10+1) GA on OneMax" should "work well with naive population w/o genealogy" in
     simpleTest(n => 1.75 * n * math.log(n))
               (MuPlusOneGA.withStandardBitMutation(10, 1.0, 1.43))
-              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false))
+  
+  it should "work well with naive population with genealogy" in
+    simpleTest(n => 1.75 * n * math.log(n))
+              (MuPlusOneGA.withStandardBitMutation(10, 1.0, 1.43))
+              (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = true))
