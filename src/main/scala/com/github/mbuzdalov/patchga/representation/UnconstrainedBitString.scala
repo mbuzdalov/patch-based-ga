@@ -31,7 +31,7 @@ trait UnconstrainedBitString(size: Int)
     // First, count the number of differing bits between the parents
     val countDifferences = distance(mainParent, auxParent)
 
-    // Second, iterate over the differing bits again and mutate them in the result as appropriately
+    // Second, iterate over the differing bits again and mutate them in the result as appropriate
     var remainingInDiff = inDifferingBits(countDifferences)
     var remainingInSame = inSameBits(size - countDifferences)
     assert(0 <= remainingInDiff && remainingInDiff <= countDifferences)
