@@ -29,9 +29,7 @@ trait UnconstrainedBitString(size: Int)
     assert(size == mainParent.length)
     assert(size == auxParent.length)
     // First, count the number of differing bits between the parents
-    var countDifferences = 0
-    Loops.foreach(0, size): i =>
-      if mainParent(i) != auxParent(i) then countDifferences += 1
+    val countDifferences = distance(mainParent, auxParent)
 
     // Second, iterate over the differing bits again and mutate them in the result as appropriately
     var remainingInDiff = inDifferingBits(countDifferences)
