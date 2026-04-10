@@ -52,7 +52,7 @@ object DistinctSamplesToOptimality:
           else s"$prefix: parameter '$token' should be an integer in [$min..$max]")
     private def toDouble(min: Double, max: Double, msg: => String): Double =
       token.toDoubleOption match
-        case Some(v) if min <= v && v <= max => v
+        case Some(v) if min <= v && (max.isPosInfinity || v <= max) => v
         case _ => throw IllegalArgumentException(msg)
     private def doubleFrom(map: scala.collection.mutable.HashMap[String, String], min: Double, max: Double, prefix: String) =
       map.get(token) match
@@ -118,12 +118,12 @@ object DistinctSamplesToOptimality:
         Some((n: Int) => theConst)
     
     NeverForgettingGA(
-      firstParentSelectionBeta = "first-parent-selection-beta".doubleFrom(params, 1, 3, "NFGA: "),
+      firstParentSelectionBeta = "first-parent-selection-beta".doubleFrom(params, 1, Double.PositiveInfinity, "NFGA: "),
       mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       crossoverProbability = "crossover-probability".doubleFrom(params, 0, 1, "NFGA: "),
       crossoverParentMinimumDistanceBeta = "crossover-parent-minimum-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       crossoverParentMaximumDistance = crossoverMaxDistance,
-      secondParentSelectionBeta = "second-parent-selection-beta".doubleFrom(params, 0, 3, "NFGA: "),
+      secondParentSelectionBeta = "second-parent-selection-beta".doubleFrom(params, 0, Double.PositiveInfinity, "NFGA: "),
       crossoverDistanceSource = cdBeta,
     )
   
