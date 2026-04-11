@@ -53,7 +53,7 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
       case Some(dMax) => 2 <= d && d <= dMax
     
     @tailrec
-    def sampleFirstParentWithDistantEnoughNeighbors(): IndividualHandle =
+    def sampleFirstParentWithDistantEnoughNeighbors(nRemaining: Int): Option[IndividualHandle] =
       val parent = sampleParent(nodesSorted, firstParentSelectionBeta)
       distanceBuffer.clear()
       collectDistanceToHandles(parent): (_, d) => 
@@ -61,40 +61,43 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
           distanceSeen(d) = true
           distanceBuffer.addOne(d)
       distanceBuffer.foreach(v => distanceSeen(v) = false)
-      if distanceBuffer.isEmpty then sampleFirstParentWithDistantEnoughNeighbors() else parent
-    
-    var crossoverEnabled = false
+      if distanceBuffer.nonEmpty then Some(parent)
+      else if nRemaining == 0 then None
+      else sampleFirstParentWithDistantEnoughNeighbors(nRemaining - 1)
     
     Loops.forever:
-      val nextNode = if crossoverEnabled && random.nextDouble() < crossoverProbability then
-        // crossover
-        // sample a parent such that it has individuals at distance > 1
-        val firstParent = sampleFirstParentWithDistantEnoughNeighbors()
-        // sample a distance out of the valid ones
-        distanceBuffer.sortInPlace()
-        val secondParentDistance = distanceBuffer(PowerLawDistribution.sample(distanceBuffer.size, crossoverParentMinimumDistanceBeta, random) - 1)
-        // collect individuals at distance which is at least as much as the found distance, and sample one
-        collectHandlesAtDistance(firstParent, _ >= secondParentDistance, crossoverSecondParentBuffer)
-        crossoverSecondParentBuffer.sortInPlace()(using inverseFitnessOrdering)
-        // sample crossover distance and perform crossover
-        val secondParent = sampleParent(crossoverSecondParentBuffer, secondParentSelectionBeta)
-        val crossoverDistanceDistribution = crossoverDistanceSource(secondParentDistance)
-        assert(crossoverDistanceDistribution.min >= 1)
-        assert(crossoverDistanceDistribution.max < secondParentDistance)
-        val crossoverDistance = crossoverDistanceDistribution.sample(random)
-        crossoverH(firstParent, secondParent, _ => crossoverDistance, _ => 0)
-      else
-        // mutation
-        val parent = sampleParent(nodesSorted, mutationParentSelectionBeta)
-        val change = PowerLawDistribution.sample(maximumPatchSize, mutationDistanceBeta, random)
-        mutateH(parent, change)
-      end nextNode
+      // If crossover is to be invoked, there is a possibility that finding a parent fails.
+      //
+      // In the past, the presence of a possible parent was found deterministically.
+      // As we started playing with parent selection using funny distributions, this becomes tedious.
+      //
+      // So we have the following to be None if either:
+      // - it's time to do mutation, or
+      // - crossover parent sampling fails within some 30 attempts.
+      val nextNodeIfCrossover = if random.nextDouble() >= crossoverProbability then None else
+        sampleFirstParentWithDistantEnoughNeighbors(30)
 
-      // if the just-sampled node is new, do some bookkeeping
-      if nextNode.referenceCount == 1 then
-        // add it to the pool
-        insertionSortAdd(nextNode)
-        // if we didn't have a legitimate pair of parents for crossover, check whether the new individual can make one      
-        if !crossoverEnabled then
-          collectDistanceToHandles(nextNode): (_, d) =>
-            crossoverEnabled |= crossoverDistanceOK(d)
+      // Then, based on whether the crossover parent is found, we perform either crossover or mutation
+      val nextNode = nextNodeIfCrossover match
+        case Some(firstParent) => // crossover
+          // the first parent is sampled such that it has individuals at distance > 1
+          // sample a distance out of the valid ones
+          distanceBuffer.sortInPlace()
+          val secondParentDistance = distanceBuffer(PowerLawDistribution.sample(distanceBuffer.size, crossoverParentMinimumDistanceBeta, random) - 1)
+          // collect individuals at distance which is at least as much as the found distance, and sample one
+          collectHandlesAtDistance(firstParent, _ >= secondParentDistance, crossoverSecondParentBuffer)
+          crossoverSecondParentBuffer.sortInPlace()(using inverseFitnessOrdering)
+          // sample crossover distance and perform crossover
+          val secondParent = sampleParent(crossoverSecondParentBuffer, secondParentSelectionBeta)
+          val crossoverDistanceDistribution = crossoverDistanceSource(secondParentDistance)
+          assert(crossoverDistanceDistribution.min >= 1)
+          assert(crossoverDistanceDistribution.max < secondParentDistance)
+          val crossoverDistance = crossoverDistanceDistribution.sample(random)
+          crossoverH(firstParent, secondParent, _ => crossoverDistance, _ => 0)
+        case None => // mutation
+          val parent = sampleParent(nodesSorted, mutationParentSelectionBeta)
+          val change = PowerLawDistribution.sample(maximumPatchSize, mutationDistanceBeta, random)
+          mutateH(parent, change)
+
+      // if the just-sampled node is new, add it to the pool
+      if nextNode.referenceCount == 1 then insertionSortAdd(nextNode)
