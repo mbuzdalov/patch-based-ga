@@ -22,17 +22,24 @@ object BinomialDistribution:
     override def max: Int = n
     override def sample(rng: Random): Int = Loops.count(0, n)(_ => rng.nextDouble() < p)
     
+  private class OneHalfBinomialDistribution(n: Int) extends IntegerDistribution:
+    override def min: Int = 0
+    override def max: Int = n
+    override def sample(rng: Random): Int =
+      var nn = n
+      var result = 0
+      while
+        nn -= 64
+        nn > 0
+      do result += java.lang.Long.bitCount(rng.nextLong())
+      result + java.lang.Long.bitCount(rng.nextLong() >>> -nn)
+    
   def apply(n: Int, p: Double): IntegerDistribution =
-    if p < 0 || p > 1 then
-      throw new IllegalArgumentException(s"p is out of bounds: $p is not in [0;1]")
-    else if n < 0 then
-      throw new IllegalArgumentException(s"n is negative: $n")
-    else if p == 0 || n == 0 then 
-      ConstantDistribution.zero
-    else if p == 1 then
-      ConstantDistribution(n)
-    else if p < 0.05 then
-      new LogBasedBinomialDistribution(n, p)
-    else
-      new NaiveBinomialDistribution(n, p)
+    if p < 0 || p > 1 then throw IllegalArgumentException(s"p is out of bounds: $p is not in [0;1]")
+    else if n < 0 then throw IllegalArgumentException(s"n is negative: $n")
+    else if p == 0 || n == 0 then ConstantDistribution.zero
+    else if p == 1 then ConstantDistribution(n)
+    else if p < 0.05 then LogBasedBinomialDistribution(n, p)
+    else if p == 0.5 then OneHalfBinomialDistribution(n)
+    else NaiveBinomialDistribution(n, p)
       

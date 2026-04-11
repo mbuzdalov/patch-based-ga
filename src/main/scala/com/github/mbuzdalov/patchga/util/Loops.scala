@@ -29,4 +29,8 @@ object Loops:
       if function(idx) then result += 1
       idx +=1
     result
+
+  inline def forever(inline function: => Any): Nothing =
+    while true do function
+    throw new AssertionError("This line should not be reached")
 end Loops

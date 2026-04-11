@@ -2,21 +2,77 @@ package com.github.mbuzdalov.patchga.population
 
 import com.github.mbuzdalov.patchga.config.*
 
-trait NaiveScratchPopulation extends Population:
-  self: IndividualType & FitnessType & NewRandomIndividual & SimpleMutationOperator & SimpleCrossoverOperator & SimpleFitnessFunction =>
+import scala.collection.mutable.ArrayBuffer
 
-    class FitIndividual(val individual: Individual):
-      val fitness: Fitness = computeFitness(individual)
+trait NaiveScratchPopulation(allowDuplicates: Boolean, disableDiscard: Boolean, supportGenealogy: Boolean) extends Population:
+  self: IndividualType & FitnessType & NewRandomIndividual & IndividualDistance
+    & SimpleMutationOperator & SimpleCrossoverOperator & SimpleFitnessFunction =>
 
-    override type IndividualHandle = FitIndividual
+  private type GenT = IndividualHandleProto.Genealogy[IndividualHandle]
+  import IndividualHandleProto.Genealogy.*
+  
+  class FitIndividual(val individual: Individual, val genealogy: GenT) extends IndividualHandleProto[FitIndividual]:
+    var referenceCount: Int = 1
+    val fitness: Fitness = computeFitness(individual)
+    recordEvaluation(individual, fitness, this)
 
-    override def newRandomIndividualH(): IndividualHandle =
-      new FitIndividual(newRandomIndividual())
-    override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
-      new FitIndividual(mutate(handle.individual, distance))
-    override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
-                            inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
-      new FitIndividual(crossover(mainParent.individual, auxParent.individual, inDifferingBits, inSameBits))
+  private val allIndividuals = new scala.collection.mutable.HashSet[FitIndividual]()
+  private def handleFor(ind: Individual, genealogy: GenT): FitIndividual =
+    if allowDuplicates then
+      val result = FitIndividual(ind, genealogy)
+      allIndividuals.addOne(result)
+      result
+    else allIndividuals.find(h => distance(h.individual, ind) == 0) match
+      case Some(existing) =>
+        existing.referenceCount += 1
+        existing
+      case None =>
+        val result = FitIndividual(ind, genealogy)
+        allIndividuals.addOne(result)
+        result
 
-    override def fitnessH(handle: IndividualHandle): Fitness = handle.fitness
-    override def discardH(handle: IndividualHandle): Unit = ()
+  override type IndividualHandle = FitIndividual
+
+  override def newRandomIndividualH(): IndividualHandle =
+    handleFor(newRandomIndividual(), RandomCreation)
+
+  override def mutateH(handle: IndividualHandle, distance: Int): IndividualHandle =
+    handleFor(mutate(handle.individual, distance), if supportGenealogy then Mutation(handle, distance) else Unknown)
+
+  override def crossoverH(mainParent: IndividualHandle, auxParent: IndividualHandle,
+                          inDifferingBits: Int => Int, inSameBits: Int => Int): IndividualHandle =
+    if supportGenealogy then
+      val idbInterceptor = NaiveScratchPopulation.FunctorInterceptor(inDifferingBits)
+      val isbInterceptor = NaiveScratchPopulation.FunctorInterceptor(inSameBits)
+      val resultIndividual = crossover(mainParent.individual, auxParent.individual, idbInterceptor, isbInterceptor)
+      handleFor(resultIndividual, Crossover(
+        mainParent, auxParent,
+        nSameBits = isbInterceptor.lastArgument, nDiffBits = idbInterceptor.lastArgument,
+        changedInSame = isbInterceptor.lastResult, changedInDiff = idbInterceptor.lastResult
+      ))
+    else handleFor(crossover(mainParent.individual, auxParent.individual, inDifferingBits, inSameBits), Unknown)
+  
+  override def fitnessH(handle: IndividualHandle): Fitness = handle.fitness
+  override def discardH(handle: IndividualHandle): Unit = if !disableDiscard then
+    handle.referenceCount -= 1
+    if handle.referenceCount == 0 then
+      allIndividuals.remove(handle)
+  
+  override def collectDistanceToHandles(base: IndividualHandle)(consumer: (IndividualHandle, Int) => Unit): Unit =
+    for ind <- allIndividuals do
+      consumer(ind, distance(base.individual, ind.individual))
+  
+  override def collectHandlesAtDistance(base: IndividualHandle, distancePredicate: Int => Boolean, buffer: ArrayBuffer[IndividualHandle]): Unit =
+    buffer.clear()
+    for ind <- allIndividuals do
+      if distancePredicate(distance(base.individual, ind.individual))
+        then buffer.addOne(ind)
+
+private object NaiveScratchPopulation:
+  private class FunctorInterceptor(delegate: Int => Int) extends (Int => Int):
+    var lastArgument, lastResult: Int = -1
+    override def apply(arg: Int): Int =
+      lastArgument = arg
+      lastResult = delegate(arg)
+      lastResult
+      

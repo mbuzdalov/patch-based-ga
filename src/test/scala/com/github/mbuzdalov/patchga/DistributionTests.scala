@@ -44,6 +44,36 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     Loops.foreach(0, n): i => 
       counts(i).toDouble / size shouldBe probabilities(i) +- math.max(0.1 * probabilities(i), 5e-6)
 
+  private def testSymmetricPowerLaw(n: Int, beta: Double): Unit =
+    val probabilities = Array.tabulate(n)(i => math.pow(i + 1, -beta) + math.pow(n - i, -beta))
+    val sum = probabilities.sum
+    Loops.foreach(0, n)(i => probabilities(i) /= sum)
+    val counts = new Array[Int](n)
+    val distribution = PowerLawDistribution(n, beta).symmetric(n + 1)
+    distribution.min shouldBe 1
+    distribution.max shouldBe n
+    val rng = new Random(33453236432L)
+    val size = 10000000
+    Loops.repeat(size):
+      counts(distribution.sample(rng) - 1) += 1
+    Loops.foreach(0, n): i =>
+      counts(i).toDouble / size shouldBe probabilities(i) +- math.max(0.15 * probabilities(i), 5e-6)
+  
+  private def testHalfBinomial(distribution: IntegerDistribution): Unit =
+    val n = distribution.max
+    val counts = new Array[Int](n + 1)
+    val size = 10000000
+    val rng = new Random(72353444623426L)
+    Loops.repeat(size):
+      counts(distribution.sample(rng)) += 1
+    var choose = 1L
+    Loops.foreach(0, n + 1): i =>
+      val expected = choose.toDouble / (1L << n)
+      val found = counts(i).toDouble / size
+      found shouldBe expected +- math.max(0.1 * expected, 5e-6)
+      choose *= n - i
+      choose /= i + 1
+  
   "ConstantDistribution.zero" should "produce zeros" in testConstant(ConstantDistribution.zero, 0)
   "ConstantDistribution.one" should "produce ones" in testConstant(ConstantDistribution.one, 1)
   "ConstantDistribution(5)" should "produce fives" in testConstant(ConstantDistribution(5), 5)
@@ -53,7 +83,13 @@ class DistributionTests extends AnyFlatSpec with Matchers:
   "BinomialDistribution(0, 0.4)" should "be constant 0" in testConstant(BinomialDistribution(0, 0.4), 0)
 
   "BinomialDistribution(1000, 0.001)" should "behave as expected" in testOneOverN(BinomialDistribution(1000, 0.001))
+  "BinomialDistribution(30, 0.5)" should "behave as expected" in testHalfBinomial(BinomialDistribution(30, 0.5))
+  "BinomialDistribution(60, 0.5)" should "behave as expected" in testHalfBinomial(BinomialDistribution(60, 0.5))
 
   "PowerLawDistribution(100, 1.5)" should "behave as expected" in testPowerLaw(100, 1.5)
   "PowerLawDistribution(100, 2.0)" should "behave as expected" in testPowerLaw(100, 2.0)
   "PowerLawDistribution(100, 2.5)" should "behave as expected" in testPowerLaw(100, 2.5)
+
+  "Symmetric PowerLawDistribution(100, 1.5)" should "behave as expected" in testSymmetricPowerLaw(100, 1.5)
+  "Symmetric PowerLawDistribution(100, 2.0)" should "behave as expected" in testSymmetricPowerLaw(100, 2.0)
+  "Symmetric PowerLawDistribution(100, 2.5)" should "behave as expected" in testSymmetricPowerLaw(100, 2.5)

@@ -1,23 +1,24 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
 object OneMaxWallClockTimeMeasurements:
+  private type SupportedOptimizer = Optimizer:
+    type RequiredConfig >: Problems.MinimalRequirements
   private case class RunResults(avgEvaluations: Double, avgTime: Double):
     def avgTimePerEval: Double = avgTime / avgEvaluations
 
-  private def run(optimizer: Optimizer)
-                 (problem: => optimizer.RequiredConfig & FixedTargetTerminator): RunResults =
+  private def run(optimizer: SupportedOptimizer, target: Int)
+                 (problem: => Problems.IntProblem): RunResults =
     var sumEvaluations = 0.0
     var nRuns = 0L
     val tBegin = System.nanoTime()
     while System.nanoTime() - tBegin < 1e9 do
       val instance = problem
-      val result = FixedTargetTerminator.runUntilTargetReached(optimizer)(instance)
+      val result = FixedTargetTerminator.runUntilTargetReached(optimizer, instance, target)
       nRuns += 1
       sumEvaluations += result.nEvaluations
     RunResults(sumEvaluations / nRuns, (System.nanoTime() - tBegin) * 1e-9 / nRuns)
@@ -28,25 +29,25 @@ object OneMaxWallClockTimeMeasurements:
     val n = args(2).toInt
     val compactOutput = args.length > 3 && args(3) == "compact" 
 
-    val twoPlusOneGA = new MuPlusOneGA(2, 0.9, n => BinomialDistribution(n, math.min(1, 1.2 / n)))
-    val tenPlusOneGA = new MuPlusOneGA(10, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
-    val fiftyPlusOneGA = new MuPlusOneGA(50, 0.9, n => BinomialDistribution(n, math.min(1, 1.4 / n)))
+    val twoPlusOneGA = MuPlusOneGA.withStandardBitMutation(2, 0.9, 1.2)
+    val tenPlusOneGA = MuPlusOneGA.withStandardBitMutation(10, 0.9, 1.4)
+    val fiftyPlusOneGA = MuPlusOneGA.withStandardBitMutation(50, 0.9, 1.4)
 
     val evaluations, evaluationTimes = new MeanAndStandardDeviation(window = 10)
 
     if !compactOutput then println(s"$algo, $flavour, $n:")
 
     def newProblem() = flavour match
-      case "naive" => Problems.naiveOneMaxFT(n)
-      case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false)
+      case "naive" => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false)
+      case "incre" => Problems.incrementalOneMaxFT(n, allowDuplicates = false, disableDiscard = false)
 
     Loops.repeat(20):
       val result = algo match
-        case "RLS" => run(RandomizedLocalSearch)(newProblem())
-        case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation)(newProblem())
-        case "(2+1)" => run(twoPlusOneGA)(newProblem())
-        case "(10+1)" => run(tenPlusOneGA)(newProblem())
-        case "(50+1)" => run(fiftyPlusOneGA)(newProblem())
+        case "RLS" => run(OnePlusOneEA.randomizedLocalSearch, n)(newProblem())
+        case "(1+1)" => run(OnePlusOneEA.withStandardBitMutation, n)(newProblem())
+        case "(2+1)" => run(twoPlusOneGA, n)(newProblem())
+        case "(10+1)" => run(tenPlusOneGA, n)(newProblem())
+        case "(50+1)" => run(fiftyPlusOneGA, n)(newProblem())
       val currTime = result.avgTimePerEval
       val currEval = result.avgEvaluations
       evaluationTimes.record(currTime)

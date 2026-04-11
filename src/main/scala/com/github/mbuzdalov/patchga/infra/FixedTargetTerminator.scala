@@ -3,30 +3,24 @@ package com.github.mbuzdalov.patchga.infra
 import com.github.mbuzdalov.patchga.algorithm.Optimizer
 import com.github.mbuzdalov.patchga.config.*
 
-trait FixedTargetTerminator extends SimpleFitnessFunction:
-  self: IndividualType & FitnessType & FitnessComparator =>
-
-  class TargetReached(val individual: Individual, val fitness: Fitness, val nEvaluations: Long) extends Exception
-
-  private var nFitnessEvaluations: Long = 0
-  def targetFitness: Fitness
-
-  private[FixedTargetTerminator] def validateFitness(ind: Individual, fitness: Fitness): Fitness =
-    nFitnessEvaluations += 1
-    if compare(fitness, targetFitness) >= 0 then
-      throw new TargetReached(ind, fitness, nFitnessEvaluations)
-    fitness  
-
-  abstract override def computeFitness(ind: Individual): Fitness = validateFitness(ind, super.computeFitness(ind))
-
 object FixedTargetTerminator:
-  trait Incremental extends FixedTargetTerminator, IncrementalFitnessFunction:
-    self: IndividualType & FitnessType & PatchType & FitnessComparator =>
-    abstract override def computeFitnessFunctionIncrementally(individual: Individual, oldFitness: Fitness, patch: ImmutablePatch): Fitness =
-      validateFitness(individual, super.computeFitnessFunctionIncrementally(individual, oldFitness, patch))
-
-  def runUntilTargetReached(optimizer: Optimizer)(config: optimizer.RequiredConfig & FixedTargetTerminator): config.TargetReached =
-    try
-      optimizer.optimize(config)
-    catch
-      case e: config.TargetReached => e
+  class TargetReached[Fitness](val fitness: Fitness, val nEvaluations: Long)
+  
+  def runUntilTargetReached(optimizer: Optimizer, 
+                            config: optimizer.RequiredConfig & Population & IndividualType & FitnessType & FitnessComparator,
+                            targetFitness: config.Fitness,
+                            nTargetHitsRequired: Int = 1): TargetReached[config.Fitness] =
+    var nFitnessEvaluations: Long = 0
+    var bestFitness: Option[config.Fitness] = None
+    val TargetReachedEx = RuntimeException("Target Reached")
+    var nTargetHits = 0
+    
+    config.addEvaluationListener: (ind, fitness, handle) =>
+      nFitnessEvaluations += 1
+      if config.compare(fitness, targetFitness) >= 0 then
+        bestFitness = Some(fitness)
+        nTargetHits += 1
+        if nTargetHits >= nTargetHitsRequired then throw TargetReachedEx
+    
+    try optimizer.optimize(config) catch
+      case TargetReachedEx => TargetReached(bestFitness.get, nFitnessEvaluations)

@@ -6,7 +6,8 @@ import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.util.{Loops, MutableIntSet}
 
 trait UnconstrainedBitString(size: Int)
-  extends IndividualType, MaximumPatchSize, PatchType, SimpleMutationOperator, SimpleCrossoverOperator, NewRandomIndividual:
+  extends IndividualType, MaximumPatchSize, PatchType, SimpleMutationOperator, SimpleCrossoverOperator,
+    IndividualDistance, NewRandomIndividual:
   self: RandomProvider =>
   override type Individual = Array[Boolean]
   override type MutablePatch = MutableIntSet
@@ -15,7 +16,10 @@ trait UnconstrainedBitString(size: Int)
   override def maximumPatchSize: Int = size
 
   override def copyOfIndividual(ind: Individual): Individual = ind.clone()
-
+  
+  override def distance(lhs: Individual, rhs: Individual): Int =
+    Loops.count(0, lhs.length)(i => lhs(i) != rhs(i))
+  
   override def mutate(individual: Individual, distance: Int): Individual =
     assert(size == individual.length)
     mutateImpl(individual.clone(), 0, distance)
@@ -25,13 +29,13 @@ trait UnconstrainedBitString(size: Int)
     assert(size == mainParent.length)
     assert(size == auxParent.length)
     // First, count the number of differing bits between the parents
-    var countDifferences = 0
-    Loops.foreach(0, size): i =>
-      if mainParent(i) != auxParent(i) then countDifferences += 1
+    val countDifferences = distance(mainParent, auxParent)
 
-    // Second, iterate over the differing bits again and mutate them in the result as appropriately
+    // Second, iterate over the differing bits again and mutate them in the result as appropriate
     var remainingInDiff = inDifferingBits(countDifferences)
     var remainingInSame = inSameBits(size - countDifferences)
+    assert(0 <= remainingInDiff && remainingInDiff <= countDifferences)
+    assert(0 <= remainingInSame && remainingInSame <= size - countDifferences)
     val result = mainParent.clone()
     if remainingInDiff > 0 || remainingInSame > 0 then
       var scannedDiff, scannedSame = 0

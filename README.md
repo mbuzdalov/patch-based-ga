@@ -28,3 +28,56 @@ Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.KnapsackWa
 Run `sbt` as follows: `sbt "runMain com.github.mbuzdalov.patchga.main.KnapsackDiversityMeasurements <n> <budget>"`, where:
 - `<n>`: the problem size, a positive integer.
 - `<budget>`: the maximum computational budget in fitness evaluations, a positive integer.
+
+## Never-Forgetting Genetic Algorithms: A Promising Architecture for Theory and Practice
+
+The project was created with an intention to support really large populations and algorithms like this one.
+All experiments are to be run as follows:
+
+`sbt "runMain com.github.mbuzdalov.patchga.main.DistinctSamplesToOptimality <descriptor.yaml>`
+
+where the descriptor is written in a YAML-like format with the following contents as an example:
+
+```yaml
+- algorithms
+  - rls
+    - RLS
+  - heavy-ollga
+    - (1+(L,L)) GA
+      - mutation-distance-beta: 2.5
+      - crossover-distance-beta: 2.5
+  - nfga-local
+    - NFGA
+      - first-parent-selection-beta: 2.5
+      - mutation-distance-beta: 1.5
+      - crossover-probability: 0.5
+      - crossover-parent-minimum-distance-beta: 1.5
+      - second-parent-selection-beta: 2.5
+      - crossover-distance: symmetric-heavy(2.5)
+  - nfga-flat
+    - NFGA
+      - first-parent-selection-beta: 1.5
+      - mutation-distance-beta: 1.5
+      - crossover-probability: 0.5
+      - crossover-parent-minimum-distance-beta: 1.5
+      - second-parent-selection-beta: 1.5
+      - crossover-distance: uniform-distance
+- problems
+  - linear-16-low
+    - Linear
+      - 1: 14
+      - 2: 2
+    - allow
+      - all
+  - onemax-16384
+    - OneMax
+      - size: 16384
+    - allow
+      - rls
+      - heavy-ollga
+      - nfga-flat
+- runtime
+  - stack: 67108864
+  - processors: 16
+  - runs: 11
+```

@@ -1,20 +1,20 @@
 package com.github.mbuzdalov.patchga.algorithm
 
-import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
-
 import com.github.mbuzdalov.patchga.config.*
-import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, IntegerDistribution}
+import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, IntegerDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.util.Loops
 
-class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionSource: Int => IntegerDistribution) extends Optimizer:
+class MuPlusOneGA(populationSize: Int, pCrossover: Double,
+                  soleMutationDistributionSource: Int => IntegerDistribution,
+                  mutationAfterCrossoverDistributionSource: Int => IntegerDistribution) extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
 
   override def optimize(config: RequiredConfig): Nothing =
-    import config._
+    import config.*
 
     // Preparation
-    val mutationOperator = mutationDistributionSource(maximumPatchSize)
+    val mutationOperator = soleMutationDistributionSource(maximumPatchSize)
 
     // Population initialization
     val population = new ArrayBuffer[IndividualHandle](populationSize)
@@ -41,13 +41,13 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
 
     populateSmallest()
 
-    @tailrec
-    def go(): Nothing =
+    Loops.forever:
       val next = if random.nextDouble() < pCrossover then
         // Crossover and mutation
         val i1, i2 = random.nextInt(populationSize)
         crossoverH(population(i1), population(i2), 
-          d => BinomialDistribution(d, 0.5).sample(random), s => mutationDistributionSource(s).sample(random))
+          d => BinomialDistribution(d, 0.5).sample(random), 
+          s => mutationAfterCrossoverDistributionSource(s).sample(random))
       else
         // Mutation only
         val idx = random.nextInt(populationSize)
@@ -76,5 +76,15 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double, mutationDistributionS
           val indexToDie = smallestFitnessIndices(toDie)
           discardH(population(indexToDie))
           population(indexToDie) = next
-      go()
-    go()
+      end if
+
+object MuPlusOneGA:
+  def withStandardBitMutation(populationSize: Int, pCrossover: Double, constantVal: Double): MuPlusOneGA =
+    MuPlusOneGA(populationSize, pCrossover, 
+      soleMutationDistributionSource = n => BinomialDistribution(n, math.min(1, constantVal / n)), 
+      mutationAfterCrossoverDistributionSource = n => BinomialDistribution(n, math.min(1, constantVal / n)))
+  
+  def withPowerLawMutation(populationSize: Int, pCrossover: Double, beta: Double): MuPlusOneGA =
+    MuPlusOneGA(populationSize, pCrossover, 
+      soleMutationDistributionSource = n => PowerLawDistribution(n, beta), 
+      mutationAfterCrossoverDistributionSource = n => PowerLawDistribution(n + 1, beta) - 1)
