@@ -59,6 +59,16 @@ object CollectorPlotter:
   
   private def readSizes(br: BufferedReader): IArray[Int] =
     IArray.unsafeFromArray(expect(br.readLine(), "anytime-sizes").split(" ").map(_.toInt))
+
+  private def sufficientlyDifferent(v1: Int, v2: Int): Boolean =
+    val s1 = v1.toString
+    val s2 = v2.toString
+    s1.length != s2.length || s1.take(2) != s2.take(2)
+  
+  private def sufficientlyDifferent(n: Int, iqr1: (Int, Int, Int), iqr2: (Int, Int, Int)): Boolean =
+    sufficientlyDifferent(n - iqr1._1 + 1, n - iqr2._1 + 1) ||
+      sufficientlyDifferent(n - iqr1._2 + 1, n - iqr2._2 + 1) ||
+      sufficientlyDifferent(n - iqr1._3 + 1, n - iqr2._3 + 1)
   
   def main(args: Array[String]): Unit =
     val cfgFile = Paths.get(args(0))
@@ -92,6 +102,6 @@ object CollectorPlotter:
                 val slice = allRunsRaw.map(seq => if seq.size > i then seq(i) else seq.last).sorted
                 (slice(slice.size / 4), slice(slice.size / 2), slice(slice.size - 1 - slice.size / 4))
               Loops.foreach(0, maxSize): i =>
-                if i == 0 || i == maxSize - 1 || quads(i) != quads(i - 1) || quads(i) != quads(i + 1) then
+                if i == 0 || i == maxSize - 1 || sufficientlyDifferent(mySize, quads(i), quads(i - 1)) || sufficientlyDifferent(mySize, quads(i), quads(i + 1)) then
                   val (q1, q2, q3) = quads(i)
                   out.write(s"${i + 1},$q1,$q2,$q3,${mySize - q1 + 1},${mySize - q2 + 1},${mySize - q3 + 1}\n")
