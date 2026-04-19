@@ -78,6 +78,38 @@ object CollectorPlotter:
       val anytimeSizes = readSizes(cfg)
       Files.createDirectories(resultRoot)
       val results = collect(src)
+      
+      def getEvaluationResults(size: Int, algo: String, problem: String): IndexedSeq[Int] =
+        val filteredMap = results.filter(r => r._1.size == size && r._1.algorithm == algo && r._1.problem == problem)
+        assert(filteredMap.size == 1)
+        val runs = filteredMap.toIndexedSeq.head._2
+        runs.map(_.queries().size)
+      
+      while "stattest:" == cfg.readLine() do
+        val s"- less: ${lessName}" = cfg.readLine(): @unchecked
+        val s"- greater: ${greaterName}" = cfg.readLine(): @unchecked
+        val s"- problem: ${problemName}" = cfg.readLine(): @unchecked
+        val s"- size: ${sizeStr}" = cfg.readLine(): @unchecked
+        val size = sizeStr.toInt
+        val lefts = getEvaluationResults(size, lessName, problemName)
+        val rights = getEvaluationResults(size, greaterName, problemName)
+        if lefts.isEmpty then
+          println(s"stattest[less = $lessName, greater = $greaterName, problem = $problemName, size = $size] cannot be performed: Nothing for left")
+        else if rights.isEmpty then
+          println(s"stattest[less = $lessName, greater = $greaterName, problem = $problemName, size = $size] cannot be performed: Nothing for right")
+        else
+          Using.resource(java.io.PrintWriter("tmp.R")): out =>
+            out.println(lefts.mkString("v0 <- c(", ",", ")"))
+            out.println(rights.mkString("v1 <- c(", ",", ")"))
+            out.println("stats::wilcox.test(v0, v1, alternative=\"less\")$p.value")
+            out.close()
+
+          import scala.sys.process._
+          val response = Process("Rscript tmp.R").lazyLines.toIndexedSeq.head
+          val result = response.substring(response.indexOf(' ') + 1).toDouble
+          println(s"stattest[less = $lessName, greater = $greaterName, problem = $problemName, size = $size]: p = $result")
+      end while
+      
       for (problem, withProblem) <- results.groupBy(_._1.problem) do
         for (algorithm, withAlgorithm) <- withProblem.groupBy(_._1.algorithm) do
           Using.resource(Files.newBufferedWriter(resultRoot.resolve(s"ev-$problem-$algorithm.csv"))): out =>
