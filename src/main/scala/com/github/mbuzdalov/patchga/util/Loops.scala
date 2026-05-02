@@ -27,7 +27,7 @@ object Loops:
     var result = 0
     while idx < until do
       if function(idx) then result += 1
-      idx +=1
+      idx += 1
     result
 
   inline def forever(inline function: => Any): Nothing =
