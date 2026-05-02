@@ -9,7 +9,7 @@ import com.github.mbuzdalov.patchga.util.Loops
 
 import java.io.{BufferedReader, Closeable, InputStreamReader, PrintWriter}
 import java.nio.file.{Files, Path, Paths}
-import java.util.StringTokenizer
+import java.util.{Random, StringTokenizer}
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{Future, ScheduledThreadPoolExecutor, ThreadFactory}
 import scala.collection.mutable.ArrayBuffer
@@ -219,6 +219,14 @@ object DistinctSamplesToOptimality:
         () => ProblemAndTarget(
           config = Problems.incrementalTwoMaxFT(size),
           target = size, nRequiredHits = 2
+        )
+      case "MaxSAT" =>
+        val size = "size".intFrom(params, 1, Int.MaxValue, "MaxSAT: ")
+        val nClauses = (4.0 * size * math.log(size)).toInt
+        val rng = Random(size)
+        ()  => ProblemAndTarget(
+          config = Problems.incrementalMaxSat(size, nClauses, rng.nextLong(), isHard = false),
+          target = nClauses, nRequiredHits = 1
         )
       case "LeadingOnes" =>
         val size = "size".intFrom(params, 1, Int.MaxValue, "LeadingOnes: ")
