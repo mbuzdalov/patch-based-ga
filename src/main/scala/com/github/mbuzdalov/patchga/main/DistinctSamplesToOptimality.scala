@@ -297,6 +297,8 @@ object DistinctSamplesToOptimality:
   private class RunInfo:
     val futures = ArrayBuffer[Future[?]]()
     val results = ArrayBuffer[Long]()
+
+  private case class RunStartInfo(pair: ProblemAlgorithmPair, startTimeMs: Long)
   
   def main(args: Array[String]): Unit =
     if args.length == 0 then
@@ -310,6 +312,7 @@ object DistinctSamplesToOptimality:
       val runFmtString = s"%0${lengthOfRunNumber}d.txt"
       val nProcessors = if runtime.nProcessors > 0 then runtime.nProcessors else Runtime.getRuntime.availableProcessors()
       val runInfoMap = scala.collection.mutable.HashMap[ProblemAlgorithmPair, RunInfo]()
+      val activeRuns = scala.collection.mutable.ArrayBuffer[RunStartInfo]()
 
       // start the command line reader
       val cmdLine: Runnable = () =>
@@ -319,8 +322,15 @@ object DistinctSamplesToOptimality:
             cmd.nextToken() match
               case "help" =>
                 println("Supported commands are:")
+                println("  active: print what is currently running,")
+                println("          namely problem-algorithm pairs and their corresponding run times.")
                 println("  dump [unfinished]: for each problem-algorithm pair, show how many runs are finished,")
                 println("                     omitting fully completed pairs if 'unfinished' is specified.")
+              case "active" =>
+                val snapshot = activeRuns.synchronized(activeRuns.toIndexedSeq)
+                for (_, seq) <- snapshot.groupBy(_.pair) do
+                  for e <- seq.sortBy(_.startTimeMs) do
+                    println(s"${e.pair.algorithmName} on ${e.pair.problemName} running for ${1e-3 * (System.currentTimeMillis() - e.startTimeMs)} seconds")
               case "dump" =>
                 val showUnfinishedOnly = cmd.hasMoreTokens && cmd.nextToken() == "unfinished"
                 runInfoMap.synchronized:
@@ -358,10 +368,13 @@ object DistinctSamplesToOptimality:
               val runInfo = runInfoMap.synchronized(runInfoMap.getOrElseUpdate(key, RunInfo()))
               val task: Runnable = () =>
                 val t0 = System.currentTimeMillis()
+                val activeEntry = RunStartInfo(key, t0)
+                activeRuns.synchronized(activeRuns.addOne(activeEntry))
                 val pat = problemFun()
                 val fitnessValues = ArrayBuffer[pat.config.Fitness]()
                 pat.config.addEvaluationListener((i, f, _) => fitnessValues.addOne(f))
                 val reached = FixedTargetTerminator.runUntilTargetReached(algorithm, pat.config, pat.target, pat.nRequiredHits)
+                activeRuns.synchronized(activeRuns.remove(activeRuns.indexOf(activeEntry)))
                 val time = System.currentTimeMillis() - t0
                 val fitnessRecord = fitnessValues.map(_.toString).asJava
                 Files.write(directory.resolve(runFmtString.format(run)), fitnessRecord)
