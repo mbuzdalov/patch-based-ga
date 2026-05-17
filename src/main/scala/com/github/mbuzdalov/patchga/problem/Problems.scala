@@ -42,6 +42,12 @@ object Problems:
       override def compare(lhs: Fitness, rhs: Fitness): Int = 
         super.compare(math.max(lhs, size - lhs), math.max(rhs, size - rhs))
   
+  def incrementalMaxSat(size: Int, clauses: Int, seed: Long, isHard: Boolean): IntProblem =
+    new UnconstrainedBitString(size)
+      with MaxSAT(MaxSAT.Referencer(size, clauses, seed, isHard))
+      with SingleSlotMSTPopulation(allowDuplicates = false, disableDiscard = true)
+      with ThreadLocalRandomProvider
+  
   def incrementalCliffFT(size: Int, gap: Int, allowDuplicates: Boolean, disableDiscard: Boolean): IntProblem =
     new UnconstrainedBitString(size)
       with OneMax.BasicArray with Cliff(size, gap) with OneMax.BasicArrayIncremental
