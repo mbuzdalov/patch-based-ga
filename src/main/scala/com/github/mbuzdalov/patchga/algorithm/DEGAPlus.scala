@@ -7,14 +7,14 @@ import com.github.mbuzdalov.patchga.util.Loops
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
-object DEGAPlus extends Optimizer:
+class DEGAPlus(mutationDistributionSource: Int => IntegerDistribution) extends Optimizer:
   type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
   
   override def optimize(config: RequiredConfig): Nothing =
     import config.*
     
     val n = maximumPatchSize
-    val mutationDistribution = BinomialDistribution(n, 1.0 / n)
+    val mutationDistribution = mutationDistributionSource(n)
     
     val population = ArrayBuffer[IndividualHandle]()
     population.addOne(newRandomIndividualH())
@@ -64,3 +64,7 @@ object DEGAPlus extends Optimizer:
           val dist = BinomialDistribution(xDistance, 1.0 / xDistance)
           subsample((xDistance * math.log(n) + 0.5).toInt, y, dist, smaller)
       end if
+
+object DEGAPlus:
+  val withStandardBitMutation: DEGAPlus = DEGAPlus(n => BinomialDistribution(n, 1.0 / n))
+  

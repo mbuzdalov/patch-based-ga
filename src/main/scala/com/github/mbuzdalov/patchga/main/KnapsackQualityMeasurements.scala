@@ -26,7 +26,7 @@ object KnapsackQualityMeasurements:
         "NFGA [all 1.5, US]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => UniformDistribution(1, d - 1)),
         "NFGA [all 1.5, F1]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => ConstantDistribution(1)),
         "NFGA [all 1.5, S1]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => ConstantDistribution(d - 1)),
-        "DEGA+" -> DEGAPlus,
+        "DEGA+" -> DEGAPlus.withStandardBitMutation,
       )
       case "(2+1)" => for cc <- 8 to 15; c = (1 << cc) * 0.001 yield
         s"(2+1) EA [$c]" -> MuPlusOneGA.withStandardBitMutation(2, 1, c)

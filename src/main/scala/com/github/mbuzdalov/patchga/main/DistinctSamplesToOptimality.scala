@@ -163,7 +163,7 @@ object DistinctSamplesToOptimality:
         if r.currentOffset <= offset then OnePlusOneEA.randomizedLocalSearch
         else throw IllegalArgumentException(s"RLS does not take parameters, found one: '${r.current}'")
       case "DEGA+" =>
-        if r.currentOffset <= offset then DEGAPlus
+        if r.currentOffset <= offset then DEGAPlus.withStandardBitMutation
         else throw IllegalArgumentException(s"DEGA+ does not take parameters, found one: '${r.current}'")
       case "(1+1) EA" =>
         if r.currentOffset <= offset then OnePlusOneEA.withStandardBitMutation
