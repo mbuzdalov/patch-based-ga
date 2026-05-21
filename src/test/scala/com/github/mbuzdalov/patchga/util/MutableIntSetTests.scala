@@ -8,9 +8,9 @@ class MutableIntSetTests extends AnyFlatSpec with Matchers:
   "MutableIntSet" should "pass a torture test" in:
     val n = 20
 
-    val mutableIntSet = new MutableIntSet(n)
-    val referenceSet = new scala.collection.mutable.HashSet[Int]
-    val random = new Random(32234324)
+    val mutableIntSet = MutableIntSet(n)
+    val referenceSet = scala.collection.mutable.HashSet[Int]()
+    val random = Random(32234324)
 
     Loops.repeat(1000000):
       Loops.foreach(0, n)(i => mutableIntSet.contains(i) shouldBe referenceSet.contains(i))

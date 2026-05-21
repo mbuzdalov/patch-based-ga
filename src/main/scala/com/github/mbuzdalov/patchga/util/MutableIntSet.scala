@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.util
 
-import java.util.Random
+import java.util.random.RandomGenerator
 
 class MutableIntSet(maxSize: Int):
   private val used = new Array[Boolean](maxSize)
@@ -23,7 +23,7 @@ class MutableIntSet(maxSize: Int):
       nElements -= 1
       moveGivenElementToPosition(element, nElements)
 
-  def groupAddRemove(toRemove: Int, toAdd: Int, rng: Random): Unit =
+  def groupAddRemove(toRemove: Int, toAdd: Int, rng: RandomGenerator): Unit =
     require(0 <= toRemove && toRemove <= nElements, s"toRemove = $toRemove, nElements = $nElements")
     require(0 <= toAdd && toAdd <= maxSize - nElements, s"toAdd = $toAdd, maxSize - nElements = ${maxSize - nElements}")
 
@@ -38,10 +38,10 @@ class MutableIntSet(maxSize: Int):
       moveGivenElementToPosition(what, oldNElements + i)
       add(what)
 
-  def sampleElementInSet(rng: Random): Int =
+  def sampleElementInSet(rng: RandomGenerator): Int =
     contents(rng.nextInt(nElements))
 
-  def sampleElementNotInSet(rng: Random): Int =
+  def sampleElementNotInSet(rng: RandomGenerator): Int =
     contents(nElements + rng.nextInt(maxSize - nElements))
 
   def clear(): Unit =

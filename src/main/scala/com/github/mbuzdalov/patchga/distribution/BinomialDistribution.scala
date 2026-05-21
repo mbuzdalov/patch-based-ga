@@ -1,15 +1,16 @@
 package com.github.mbuzdalov.patchga.distribution
-import java.util.Random
 
 import com.github.mbuzdalov.patchga.util.Loops
+
+import java.util.random.RandomGenerator
 
 object BinomialDistribution:
   private class LogBasedBinomialDistribution(n: Int, p: Double) extends IntegerDistribution:
     private val log1p = math.log1p(-p)
-    private def next(from: Long, rng: Random): Long = (from + math.log(rng.nextDouble()) / log1p).toLong
+    private def next(from: Long, rng: RandomGenerator): Long = (from + math.log(rng.nextDouble()) / log1p).toLong
     override def min: Int = 0
     override def max: Int = n
-    override def sample(rng: Random): Int =
+    override def sample(rng: RandomGenerator): Int =
       var result = 0
       var ptr = next(0, rng)
       while ptr < n do
@@ -20,12 +21,12 @@ object BinomialDistribution:
   private class NaiveBinomialDistribution(n: Int, p: Double) extends IntegerDistribution:
     override def min: Int = 0
     override def max: Int = n
-    override def sample(rng: Random): Int = Loops.count(0, n)(_ => rng.nextDouble() < p)
+    override def sample(rng: RandomGenerator): Int = Loops.count(0, n)(_ => rng.nextDouble() < p)
     
   private class OneHalfBinomialDistribution(n: Int) extends IntegerDistribution:
     override def min: Int = 0
     override def max: Int = n
-    override def sample(rng: Random): Int =
+    override def sample(rng: RandomGenerator): Int =
       var nn = n
       var result = 0
       while

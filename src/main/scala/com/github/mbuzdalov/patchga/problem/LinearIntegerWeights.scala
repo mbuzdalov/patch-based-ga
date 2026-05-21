@@ -10,7 +10,7 @@ trait LinearIntegerWeights(weightCounts: IArray[Int], weightSeed: Long) extends 
   override type Fitness = Long
 
   protected val weights: IArray[Int] = locally:
-    val weightRandom = new Random(weightSeed)
+    val weightRandom = Random(weightSeed)
     val weightsTemp = new Array[Int](weightCounts.sum)
     // generate all weights in sequence
     var prefix = 0

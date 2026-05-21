@@ -11,14 +11,14 @@ class DistributionTests extends AnyFlatSpec with Matchers:
   private def testConstant(distribution: IntegerDistribution, expectedValue: Int): Unit =
     distribution.min shouldBe expectedValue
     distribution.max shouldBe expectedValue
-    val rng = new Random(32423532)
+    val rng = Random(32423532)
     Loops.repeat(10):
       distribution.sample(rng) shouldBe expectedValue
 
   private def testOneOverN(distribution: IntegerDistribution): Unit =
     distribution.min shouldBe 0
     val n = distribution.max
-    val rng = new Random(2354643643L)
+    val rng = Random(2354643643L)
     val counts = new Array[Int](2)
     val runs = 100000
     Loops.repeat(runs):
@@ -37,7 +37,7 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     val distribution = PowerLawDistribution(n, beta)
     distribution.min shouldBe 1
     distribution.max shouldBe n
-    val rng = new Random(33453236432L)
+    val rng = Random(33453236432L)
     val size = 10000000
     Loops.repeat(size):
       counts(distribution.sample(rng) - 1) += 1
@@ -52,7 +52,7 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     val distribution = PowerLawDistribution(n, beta).symmetric(n + 1)
     distribution.min shouldBe 1
     distribution.max shouldBe n
-    val rng = new Random(33453236432L)
+    val rng = Random(33453236432L)
     val size = 10000000
     Loops.repeat(size):
       counts(distribution.sample(rng) - 1) += 1
@@ -63,7 +63,7 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     val n = distribution.max
     val counts = new Array[Int](n + 1)
     val size = 10000000
-    val rng = new Random(72353444623426L)
+    val rng = Random(72353444623426L)
     Loops.repeat(size):
       counts(distribution.sample(rng)) += 1
     var choose = 1L

@@ -1,20 +1,20 @@
 package com.github.mbuzdalov.patchga.distribution
 
-import java.util.Random
-import java.util.concurrent.ConcurrentHashMap
-
 import com.github.mbuzdalov.patchga.util.GrowableDoubleArray
+
+import java.util.concurrent.ConcurrentHashMap
+import java.util.random.RandomGenerator
 
 class PowerLawDistribution private(n: Int, val beta: Double, prefixSums: GrowableDoubleArray) extends IntegerDistribution:
   assert(n > 1)
   override def min: Int = 1
   override def max: Int = n
-  override def sample(rng: Random): Int = PowerLawDistribution.sampleChecked(n, beta, rng, prefixSums)
+  override def sample(rng: RandomGenerator): Int = PowerLawDistribution.sampleChecked(n, beta, rng, prefixSums)
 
 object PowerLawDistribution:
   private val distributionInstances = new ConcurrentHashMap[Double, GrowableDoubleArray]()
 
-  private def sampleChecked(n: Int, beta: Double, rng: Random, array: GrowableDoubleArray): Int =
+  private def sampleChecked(n: Int, beta: Double, rng: RandomGenerator, array: GrowableDoubleArray): Int =
     // array(x) contains the prefix sum for (1, 2, ..., x + 2)^{-beta}
     val maxIdx = n - 2
     if array.length <= maxIdx then
@@ -29,14 +29,14 @@ object PowerLawDistribution:
       while query >= array(index) do index += 1
       index + 2
   
-  private def sample(n: Int, beta: Double, rng: Random, array: GrowableDoubleArray): Int = 
+  private def sample(n: Int, beta: Double, rng: RandomGenerator, array: GrowableDoubleArray): Int = 
     if n <= 0 then throw IllegalArgumentException("Non-positive bound for power-law distribution")
     else if n == 1 then 1
     else sampleChecked(n, beta, rng, array)
 
   private def getArrayForBeta(beta: Double) = distributionInstances.computeIfAbsent(beta, _ => new GrowableDoubleArray)
 
-  def sample(n: Int, beta: Double, rng: Random): Int =
+  def sample(n: Int, beta: Double, rng: RandomGenerator): Int =
     if beta == 0 then rng.nextInt(1, n + 1)
     else if beta.isPosInfinity then 1
     else sample(n, beta, rng, getArrayForBeta(beta))

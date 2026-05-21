@@ -1,9 +1,8 @@
 package com.github.mbuzdalov.patchga.main
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.config.FitnessType
 import com.github.mbuzdalov.patchga.infra.CheapFixedBudgetTerminator
-import com.github.mbuzdalov.patchga.problem.{Knapsack, Problems}
+import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
 import java.util.Random
