@@ -4,6 +4,7 @@ import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, IntegerDistribution}
 import com.github.mbuzdalov.patchga.util.Loops
 
+import java.util.random.RandomGenerator
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
@@ -30,14 +31,15 @@ class DEGAPlus(mutationDistributionSource: Int => IntegerDistribution) extends O
       d1 > d2
 
     @tailrec
-    def subsample(budget: Int, y: IndividualHandle, rate: IntegerDistribution, replacementIdx: Int): Unit =
+    def subsample(budget: Int, y: IndividualHandle, rate: IntegerDistribution): Unit =
       if budget > 0 then
-        val x = population(replacementIdx)
+        val x = population(0)
         val z = crossoverH(x, y, d => rate.sample(random), _ => 0)
-        if compare(fitnessH(z), fitnessH(x)) > 0 then
-          population(replacementIdx) = z
-        else
-          subsample(budget - 1, y, rate, replacementIdx)
+        if compare(fitnessH(z), fitnessH(x)) > 0
+        then population(0) = z
+        else subsample(budget - 1, y, rate)
+    
+    val coinFlipper = DEGAPlus.CoinFlipInterceptor(random)
     
     Loops.forever:
       if random.nextBoolean() then
@@ -51,20 +53,24 @@ class DEGAPlus(mutationDistributionSource: Int => IntegerDistribution) extends O
           population(idx) = offspring
       else
         // crossover
-        val smaller = if compare(fitnessH(population(0)), fitnessH(population(1))) < 0 then 0 else 1
-        var xDistance = -1
-        var pDistance = -1
-        val y = crossoverH(population(smaller), population(1 - smaller), d =>
-          pDistance = d
-          xDistance = BinomialDistribution.countCoinFlips(d, random)
-          xDistance
-        , _ => 0)
-        assert(xDistance >= 0)
-        if compare(fitnessH(y), fitnessH(population(smaller))) > 0 then
+        if compare(fitnessH(population(0)), fitnessH(population(1))) > 0 then
+          val tmp = population(0)
+          population(0) = population(1)
+          population(1) = tmp
+        val y = crossoverH(population(0), population(1), coinFlipper, _ => 0)
+        val xDistance = coinFlipper.lastResult
+        assert(coinFlipper.lastResult >= 0)
+        if compare(fitnessH(y), fitnessH(population(0))) > 0 then
           val dist = BinomialDistribution(xDistance, 1.0 / xDistance)
-          subsample((xDistance * math.log(n) + 0.5).toInt, y, dist, smaller)
+          subsample((xDistance * math.log(n) + 0.5).toInt, y, dist)
       end if
 
 object DEGAPlus:
   val withStandardBitMutation: DEGAPlus = DEGAPlus(n => BinomialDistribution(n, 1.0 / n))
-  
+
+  private class CoinFlipInterceptor(rng: RandomGenerator) extends (Int => Int):
+    private var _lastResult: Int = 0
+    def lastResult: Int = _lastResult
+    override def apply(v1: Int): Int =
+      _lastResult = BinomialDistribution.countCoinFlips(v1, rng)
+      _lastResult
