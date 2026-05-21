@@ -56,7 +56,7 @@ class DEGAPlus(mutationDistributionSource: Int => IntegerDistribution) extends O
         var pDistance = -1
         val y = crossoverH(population(smaller), population(1 - smaller), d =>
           pDistance = d
-          xDistance = BinomialDistribution(d, 0.5).sample(random)
+          xDistance = BinomialDistribution.countCoinFlips(d, random)
           xDistance
         , _ => 0)
         assert(xDistance >= 0)

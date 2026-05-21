@@ -5,6 +5,16 @@ import com.github.mbuzdalov.patchga.util.Loops
 import java.util.random.RandomGenerator
 
 object BinomialDistribution:
+  def countCoinFlips(n: Int, rng: RandomGenerator): Int =
+    if n == 0 then 0 else
+      var nn = n
+      var result = 0
+      while
+        nn -= 64
+        nn > 0
+      do result += java.lang.Long.bitCount(rng.nextLong())
+      result + java.lang.Long.bitCount(rng.nextLong() >>> -nn)
+  
   private class LogBasedBinomialDistribution(n: Int, p: Double) extends IntegerDistribution:
     private val log1p = math.log1p(-p)
     private def next(from: Long, rng: RandomGenerator): Long = (from + math.log(rng.nextDouble()) / log1p).toLong
@@ -26,14 +36,7 @@ object BinomialDistribution:
   private class OneHalfBinomialDistribution(n: Int) extends IntegerDistribution:
     override def min: Int = 0
     override def max: Int = n
-    override def sample(rng: RandomGenerator): Int =
-      var nn = n
-      var result = 0
-      while
-        nn -= 64
-        nn > 0
-      do result += java.lang.Long.bitCount(rng.nextLong())
-      result + java.lang.Long.bitCount(rng.nextLong() >>> -nn)
+    override def sample(rng: RandomGenerator): Int = countCoinFlips(n, rng)
     
   def apply(n: Int, p: Double): IntegerDistribution =
     if p < 0 || p > 1 then throw IllegalArgumentException(s"p is out of bounds: $p is not in [0;1]")

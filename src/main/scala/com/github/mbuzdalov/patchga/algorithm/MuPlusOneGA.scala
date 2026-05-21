@@ -46,7 +46,7 @@ class MuPlusOneGA(populationSize: Int, pCrossover: Double,
         // Crossover and mutation
         val i1, i2 = random.nextInt(populationSize)
         crossoverH(population(i1), population(i2), 
-          d => BinomialDistribution(d, 0.5).sample(random), 
+          d => BinomialDistribution.countCoinFlips(d, random),
           s => mutationAfterCrossoverDistributionSource(s).sample(random))
       else
         // Mutation only
