@@ -10,10 +10,8 @@ import java.util.Random
 
 object KnapsackWallClockTimeMeasurements:
   private case class RunResults(avgTime: Double, avgFitness: Double)
-  private type SupportedOptimizer = Optimizer:
-    type RequiredConfig >: Problems.MinimalRequirements
 
-  private def run(optimizer: SupportedOptimizer, budget: Long)
+  private def run(optimizer: Optimizer, budget: Long)
                  (problem: => Problems.KnapsackProblem): RunResults =
     var sumFitnessValues: Double = 0.0
     var nRuns = 0L

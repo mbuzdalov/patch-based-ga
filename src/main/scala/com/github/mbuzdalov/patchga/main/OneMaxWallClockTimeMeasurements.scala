@@ -6,12 +6,10 @@ import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.{Loops, MeanAndStandardDeviation}
 
 object OneMaxWallClockTimeMeasurements:
-  private type SupportedOptimizer = Optimizer:
-    type RequiredConfig >: Problems.MinimalRequirements
   private case class RunResults(avgEvaluations: Double, avgTime: Double):
     def avgTimePerEval: Double = avgTime / avgEvaluations
 
-  private def run(optimizer: SupportedOptimizer, target: Int)
+  private def run(optimizer: Optimizer, target: Int)
                  (problem: => Problems.IntProblem): RunResults =
     var sumEvaluations = 0.0
     var nRuns = 0L

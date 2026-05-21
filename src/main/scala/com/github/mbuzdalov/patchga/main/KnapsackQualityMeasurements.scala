@@ -10,10 +10,7 @@ import java.util.Random
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 object KnapsackQualityMeasurements:
-  private type SupportedOptimizer = Optimizer:
-    type RequiredConfig >: Problems.MinimalRequirements
-
-  private def algorithmList(name: String): Seq[(String, SupportedOptimizer)] =
+  private def algorithmList(name: String): Seq[(String, Optimizer)] =
     name match
       case "default" => Seq(
         "RLS" -> OnePlusOneEA.randomizedLocalSearch,

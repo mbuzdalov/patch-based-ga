@@ -17,10 +17,7 @@ import scala.util.Using
 import scala.jdk.CollectionConverters.*
 
 object DistinctSamplesToOptimality:
-  private type SupportedOptimizer = Optimizer:
-    type RequiredConfig >: Problems.MinimalRequirements
-
-  private case class ProblemAndTarget[T](config: Problems.MinimalRequirements & FitnessType {
+  private case class ProblemAndTarget[T](config: Optimizer.MinimalRequirements & FitnessType {
     type Fitness = T
   }, target: T, nRequiredHits: Int)
   
@@ -71,7 +68,7 @@ object DistinctSamplesToOptimality:
   
   // Reading algorithm configurations
   
-  private def readOnePlusOneEA(r: KindaYamlReader): SupportedOptimizer =
+  private def readOnePlusOneEA(r: KindaYamlReader): Optimizer =
     val line = r.readAndMove
     val tok = StringTokenizer(line, ":, ")
     tok.nextToken() match
@@ -84,7 +81,7 @@ object DistinctSamplesToOptimality:
       case other =>
         throw IllegalArgumentException("(1+1) EA: Expected one of 'standard' or 'power-law'")
         
-  private def readNFGA(r: KindaYamlReader): SupportedOptimizer =
+  private def readNFGA(r: KindaYamlReader): Optimizer =
     val params = readParams(r)
     val cdBeta = params.get("crossover-distance") match
       case None =>
@@ -133,14 +130,14 @@ object DistinctSamplesToOptimality:
       crossoverDistanceSource = cdBeta,
     )
   
-  private def readOnePlusLLGA(r: KindaYamlReader): SupportedOptimizer =
+  private def readOnePlusLLGA(r: KindaYamlReader): Optimizer =
     val params = readParams(r)
     OnePlusLLGA(
       mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
       crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
     )
   
-  private def readMuPlusOneGA(mu: Int, r: KindaYamlReader): SupportedOptimizer =
+  private def readMuPlusOneGA(mu: Int, r: KindaYamlReader): Optimizer =
     val offset = r.currentOffset
     val firstLine = StringTokenizer(r.readAndMove, ":, ")
     if firstLine.nextToken() != "crossover-probability" then
@@ -159,7 +156,7 @@ object DistinctSamplesToOptimality:
       case other =>
         throw IllegalArgumentException("(mu+1) GA: Expected one of 'standard' or 'power-law'")
   
-  private def readAlgorithm(r: KindaYamlReader): SupportedOptimizer =
+  private def readAlgorithm(r: KindaYamlReader): Optimizer =
     val offset = r.currentOffset
     r.readAndMove match
       case "RLS" =>
@@ -183,11 +180,11 @@ object DistinctSamplesToOptimality:
       case other =>
         throw IllegalArgumentException(s"Unknown algorithm type: '$other'")
   
-  private def readAlgorithms(r: KindaYamlReader): IndexedSeq[(String, SupportedOptimizer)] =
+  private def readAlgorithms(r: KindaYamlReader): IndexedSeq[(String, Optimizer)] =
     if r.readAndMove != "algorithms" then
       throw IllegalArgumentException("An 'algorithms' section expected")
     val off = r.currentOffset
-    val algos = IndexedSeq.newBuilder[(String, SupportedOptimizer)]
+    val algos = IndexedSeq.newBuilder[(String, Optimizer)]
     val usedNames = scala.collection.mutable.HashSet[String]()
     while r.currentOffset == off do
       val name = r.readAndMove

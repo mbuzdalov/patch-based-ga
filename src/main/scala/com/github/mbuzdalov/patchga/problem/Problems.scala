@@ -1,5 +1,6 @@
 package com.github.mbuzdalov.patchga.problem
 
+import com.github.mbuzdalov.patchga.algorithm.Optimizer
 import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.infra.*
 import com.github.mbuzdalov.patchga.population.*
@@ -7,12 +8,11 @@ import com.github.mbuzdalov.patchga.problem
 import com.github.mbuzdalov.patchga.representation.{CompressedBitString, UnconstrainedBitString}
 
 object Problems:
-  type MinimalRequirements = IndividualType & FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
-  type IntProblem = MinimalRequirements & FitnessType:
+  type IntProblem = Optimizer.MinimalRequirements & FitnessType:
     type Fitness = Int
-  type LongProblem = MinimalRequirements & FitnessType:
+  type LongProblem = Optimizer.MinimalRequirements & FitnessType:
     type Fitness = Long
-  type KnapsackProblem = MinimalRequirements & FitnessType:
+  type KnapsackProblem = Optimizer.MinimalRequirements & FitnessType:
     type Fitness = Knapsack.FitnessObject
 
   def naiveOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean, supportGenealogy: Boolean): IntProblem =
