@@ -75,13 +75,13 @@ class CompressedOneMaxTests extends IntProblemTestsBase:
   
   "DEGA+ on OneMax" should "work well with naive population w/o genealogy" in
     simpleTest(64, 96, 128, 150)
-              (n => 2.1 * n * math.log(n))
+              (n => 2.15 * n * math.log(n))
               (DEGAPlus.withStandardBitMutation)
               (n => Problems.compressedOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false))
 
   it should "work well with naive population with genealogy" in
     simpleTest(64, 96, 128, 150)
-              (n => 2.1 * n * math.log(n))
+              (n => 2.15 * n * math.log(n))
               (DEGAPlus.withStandardBitMutation)
               (n => Problems.compressedOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = true))
   

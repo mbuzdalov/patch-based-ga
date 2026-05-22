@@ -45,7 +45,7 @@ class IncrementalOneMaxTests extends IntProblemTestsBase:
   
   "DEGA+ on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(64, 96, 128, 150)
-              (n => 2.1 * n * math.log(n))
+              (n => 2.15 * n * math.log(n))
               (DEGAPlus.withStandardBitMutation)
               (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
 

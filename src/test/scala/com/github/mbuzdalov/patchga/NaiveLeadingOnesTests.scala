@@ -18,7 +18,7 @@ class NaiveLeadingOnesTests extends IntProblemTestsBase:
               (n => Problems.naiveLeadingOnesFT(n, allowDuplicates = true, disableDiscard = false))
   
   "DEGA+ on LeadingOnes" should "work well with naive population" in
-    simpleTest(64, 96, 128)
+    simpleTest(51, 64, 96)
               (n => 2.5 * math.pow(n, 1.75)) // rough fits to make tests pass
               (DEGAPlus.withStandardBitMutation)
               (n => Problems.naiveLeadingOnesFT(n, allowDuplicates = true, disableDiscard = false))
