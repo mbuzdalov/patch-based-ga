@@ -1,6 +1,7 @@
 package com.github.mbuzdalov.patchga
 
-import com.github.mbuzdalov.patchga.algorithm.{DEGAPlus, MuPlusOneGA, OnePlusOneEA, Optimizer}
+import com.github.mbuzdalov.patchga.algorithm.{DEGAPlus, MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
+import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
 import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
@@ -64,8 +65,26 @@ class IncrementalOneMaxTests extends AnyFlatSpec with Matchers:
               (MuPlusOneGA.withStandardBitMutation(10, 1.0, 1.43))
               (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
   
+  // (2+1) DEGA+, runtimes empirically calibrated
+  
   "DEGA+ on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(64, 96, 128, 150)
               (n => 2.1 * n * math.log(n))
               (DEGAPlus.withStandardBitMutation)
               (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
+
+  // (1+(lambda,lambda)) GA, heavy-tailed version
+  
+  "(1+(L,L)) GA on OneMax" should "work well with single-slot MST-based population" in
+    simpleTest(128, 256, 512)
+              (n => 4 * n * math.log(math.log(n)))
+              (OnePlusLLGA(2.5, 2.5))
+              (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
+
+  // NFGA
+
+  "NFGA with UX on OneMax" should "work well with single-slot MST-based population" in
+    simpleTest(64, 128, 256)
+      (n => 4 * n * math.log(math.log(n)))
+      (NeverForgettingGA(2.5, 1.5, 2.5, 0.5, 1.5, None, 2.5, n => BinomialDistribution(n - 2, 0.5) + 1))
+      (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
