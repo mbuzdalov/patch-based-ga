@@ -1,13 +1,12 @@
 package com.github.mbuzdalov.patchga.infra
 
 import com.github.mbuzdalov.patchga.algorithm.Optimizer
-import com.github.mbuzdalov.patchga.config.*
 
 object FixedTargetTerminator:
   class TargetReached[Fitness](val fitness: Fitness, val nEvaluations: Long)
   
   def runUntilTargetReached(optimizer: Optimizer, 
-                            config: optimizer.RequiredConfig & Population & IndividualType & FitnessType & FitnessComparator,
+                            config: Optimizer.Config,
                             targetFitness: config.Fitness,
                             nTargetHitsRequired: Int = 1): TargetReached[config.Fitness] =
     var nFitnessEvaluations: Long = 0

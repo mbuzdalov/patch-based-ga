@@ -1,6 +1,5 @@
 package com.github.mbuzdalov.patchga.algorithm
 
-import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.{IntegerDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.util.Loops
 
@@ -15,9 +14,7 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
                         crossoverParentMaximumDistance: Option[Int => Int],
                         secondParentSelectionBeta: Double,
                         crossoverDistanceSource: Int => IntegerDistribution) extends Optimizer:
-  type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
-  
-  override def optimize(config: RequiredConfig): Nothing =
+  override def optimize(config: Optimizer.Config): Nothing =
     import config.*
 
     val crossoverParentDistanceCap = crossoverParentMaximumDistance.map(f => f(maximumPatchSize))

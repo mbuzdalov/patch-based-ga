@@ -11,7 +11,7 @@ trait IntProblemTestsBase extends AnyFlatSpec with should.Matchers:
   case class RunResults(avgEvaluations: Double, avgTime: Double)
   
   def run(optimizer: Optimizer, target: Int)
-                 (problem: => optimizer.RequiredConfig & Problems.IntProblem): RunResults =
+                 (problem: => Problems.IntProblem): RunResults =
     val nRuns = 10
     var sumEvaluations = 0.0
     val tBegin = System.nanoTime()
@@ -23,7 +23,7 @@ trait IntProblemTestsBase extends AnyFlatSpec with should.Matchers:
   def simpleTest(ns: Int*)
                 (expected: Int => Double)
                 (optimizer: Optimizer)
-                (problem: Int => optimizer.RequiredConfig & Problems.IntProblem): Unit =
+                (problem: Int => Problems.IntProblem): Unit =
     for n <- ns do
       val expectedEvs = expected(n)
       val RunResults(evs, _) = run(optimizer, n)(problem(n))

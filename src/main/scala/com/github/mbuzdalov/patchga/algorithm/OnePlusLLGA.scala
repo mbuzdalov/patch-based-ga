@@ -1,15 +1,12 @@
 package com.github.mbuzdalov.patchga.algorithm
 
-import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
 import com.github.mbuzdalov.patchga.util.Loops
 
 import scala.annotation.tailrec
 
 class OnePlusLLGA(mutationDistanceBeta: Double, crossoverDistanceBeta: Double) extends Optimizer:
-  type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
-  
-  override def optimize(config: RequiredConfig): Nothing =
+  override def optimize(config: Optimizer.Config): Nothing =
     import config.*
   
     inline def bestOfN(size: Int, gen: => IndividualHandle): IndividualHandle =

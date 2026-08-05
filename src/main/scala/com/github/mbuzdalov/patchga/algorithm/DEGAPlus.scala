@@ -1,6 +1,5 @@
 package com.github.mbuzdalov.patchga.algorithm
 
-import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, IntegerDistribution}
 import com.github.mbuzdalov.patchga.util.Loops
 
@@ -9,9 +8,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
 class DEGAPlus(mutationDistributionSource: Int => IntegerDistribution) extends Optimizer:
-  type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
-  
-  override def optimize(config: RequiredConfig): Nothing =
+  override def optimize(config: Optimizer.Config): Nothing =
     import config.*
     
     val n = maximumPatchSize

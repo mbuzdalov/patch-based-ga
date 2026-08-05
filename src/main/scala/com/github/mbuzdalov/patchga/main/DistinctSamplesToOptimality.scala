@@ -17,9 +17,10 @@ import scala.util.Using
 import scala.jdk.CollectionConverters.*
 
 object DistinctSamplesToOptimality:
-  private case class ProblemAndTarget[T](config: Optimizer.MinimalRequirements & FitnessType {
+  private type ConfigWithFitness[T] = Optimizer.Config & FitnessType:
     type Fitness = T
-  }, target: T, nRequiredHits: Int)
+  
+  private case class ProblemAndTarget[T](config: ConfigWithFitness[T], target: T, nRequiredHits: Int)
   
   private class KindaYamlReader(path: Path) extends Closeable:
     private val br = Files.newBufferedReader(path)

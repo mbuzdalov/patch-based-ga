@@ -1,13 +1,10 @@
 package com.github.mbuzdalov.patchga.algorithm
 
 import scala.annotation.tailrec
-import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, ConstantDistribution, IntegerDistribution}
 
 class OnePlusOneEA(distributionSource: Int => IntegerDistribution) extends Optimizer:
-  type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
-
-  def optimize(config: RequiredConfig): Nothing =
+  def optimize(config: Optimizer.Config): Nothing =
     import config.*
     val distribution = distributionSource(maximumPatchSize)
 

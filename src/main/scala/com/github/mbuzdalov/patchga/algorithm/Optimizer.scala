@@ -3,8 +3,7 @@ package com.github.mbuzdalov.patchga.algorithm
 import com.github.mbuzdalov.patchga.config.*
 
 trait Optimizer:
-  type RequiredConfig >: Optimizer.MinimalRequirements
-  def optimize(config: RequiredConfig): Nothing
+  def optimize(config: Optimizer.Config): Nothing
 
 object Optimizer:
-  type MinimalRequirements = IndividualType & FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
+  type Config = IndividualType & FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider

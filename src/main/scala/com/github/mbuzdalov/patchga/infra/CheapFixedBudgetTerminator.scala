@@ -1,11 +1,10 @@
 package com.github.mbuzdalov.patchga.infra
 
 import com.github.mbuzdalov.patchga.algorithm.Optimizer
-import com.github.mbuzdalov.patchga.config.*
 
 object CheapFixedBudgetTerminator:
-  def runUntilBudgetReached(optimizer: Optimizer, 
-                            config: optimizer.RequiredConfig & Population & IndividualType & FitnessType & FitnessComparator,
+  def runUntilBudgetReached(optimizer: Optimizer,
+                            config: Optimizer.Config,
                             maxEvaluations: Long): config.Fitness =
     var nFitnessEvaluations: Long = 0
     var bestFitness: Option[config.Fitness] = None

@@ -8,11 +8,11 @@ import com.github.mbuzdalov.patchga.problem
 import com.github.mbuzdalov.patchga.representation.{CompressedBitString, UnconstrainedBitString}
 
 object Problems:
-  type IntProblem = Optimizer.MinimalRequirements & FitnessType:
+  type IntProblem = Optimizer.Config & FitnessType:
     type Fitness = Int
-  type LongProblem = Optimizer.MinimalRequirements & FitnessType:
+  type LongProblem = Optimizer.Config & FitnessType:
     type Fitness = Long
-  type KnapsackProblem = Optimizer.MinimalRequirements & FitnessType:
+  type KnapsackProblem = Optimizer.Config & FitnessType:
     type Fitness = Knapsack.FitnessObject
 
   def naiveOneMaxFT(size: Int, allowDuplicates: Boolean, disableDiscard: Boolean, supportGenealogy: Boolean): IntProblem =

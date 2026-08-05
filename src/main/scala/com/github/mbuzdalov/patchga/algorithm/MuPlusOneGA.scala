@@ -1,16 +1,13 @@
 package com.github.mbuzdalov.patchga.algorithm
 
 import scala.collection.mutable.ArrayBuffer
-import com.github.mbuzdalov.patchga.config.*
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, IntegerDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.util.Loops
 
 class MuPlusOneGA(populationSize: Int, pCrossover: Double,
                   soleMutationDistributionSource: Int => IntegerDistribution,
                   mutationAfterCrossoverDistributionSource: Int => IntegerDistribution) extends Optimizer:
-  type RequiredConfig = FitnessType & Population & MaximumPatchSize & FitnessComparator & RandomProvider
-
-  override def optimize(config: RequiredConfig): Nothing =
+  override def optimize(config: Optimizer.Config): Nothing =
     import config.*
 
     // Preparation
