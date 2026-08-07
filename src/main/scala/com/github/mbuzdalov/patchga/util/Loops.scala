@@ -33,4 +33,12 @@ object Loops:
   inline def forever(inline function: => Any): Nothing =
     while true do function
     throw new AssertionError("This line should not be reached")
+    
+  inline def fold[T](from: Int, until: Int, zero: T)(inline foldFun: (T, T) => T)(inline function: Int => T): T =
+    var idx = from
+    var result = zero
+    while idx < until do
+      result = foldFun(result, function(idx))
+      idx += 1
+    result  
 end Loops

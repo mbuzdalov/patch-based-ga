@@ -7,13 +7,9 @@ object OneMax:
   trait BasicArray extends FitnessType, SimpleFitnessFunction, FitnessComparator:
     self: IndividualType { type Individual <: Array[Boolean] } =>
     override type Fitness = Int
-    
-    override def computeFitness(ind: Individual): Fitness =
-      var result = 0
-      Loops.foreach(0, ind.length)(i => if ind(i) then result += 1)
-      result
-    
     override def compare(lhs: Fitness, rhs: Fitness): Int = java.lang.Integer.compare(lhs, rhs)
+    override def computeFitness(ind: Individual): Fitness =
+      Loops.count(0, ind.length)(i => ind(i))
   
   trait BasicArrayIncremental extends BasicArray, IncrementalFitnessFunction:
     self: IndividualType { type Individual <: Array[Boolean] } & PatchType { type ImmutablePatch <: IArray[Int] } =>
@@ -32,12 +28,7 @@ object OneMax:
   
   trait Compressed extends FitnessType, SimpleFitnessFunction, FitnessComparator:
     self: IndividualType { type Individual <: Array[Long] } =>
-    
     override type Fitness = Int
-    
-    override def computeFitness(ind: Individual): Fitness =
-      var result = 0
-      Loops.foreach(0, ind.length)(i => result += java.lang.Long.bitCount(ind(i)))
-      result
-    
     override def compare(lhs: Fitness, rhs: Fitness): Int = java.lang.Integer.compare(lhs, rhs)
+    override def computeFitness(ind: Individual): Fitness =
+      Loops.fold(0, ind.length, 0)(_ + _)(i => java.lang.Long.bitCount(ind(i)))
