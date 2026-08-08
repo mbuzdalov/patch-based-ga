@@ -20,7 +20,7 @@ trait IntegerDistribution:
   @targetName("negate")
   def unary_- : IntegerDistribution = IntegerDistribution.multiplyByConstant(this, -1)
   
-  def symmetric(reflection: Int): IntegerDistribution = IntegerDistribution.symmetric(this, reflection)
+  def symmetric: IntegerDistribution = IntegerDistribution.symmetric(this)
 end IntegerDistribution
 
 object IntegerDistribution:
@@ -47,12 +47,10 @@ object IntegerDistribution:
       override def max: Int = newMax
       override def sample(rng: RandomGenerator): Int = source.sample(rng) + constant
 
-  private def symmetric(source: IntegerDistribution, reflection: Int): IntegerDistribution =
-    val newMin = math.min(source.min, reflection - source.max)
-    val newMax = math.max(source.max, reflection - source.min)
+  private def symmetric(source: IntegerDistribution): IntegerDistribution =
     new IntegerDistribution:
-      override def min: Int = newMin
-      override def max: Int = newMax
+      override def min: Int = source.min
+      override def max: Int = source.max
       override def sample(rng: RandomGenerator): Int =
         val base = source.sample(rng)
-        if rng.nextBoolean() then base else reflection - base
+        if rng.nextBoolean() then base else source.min + source.max - base

@@ -49,7 +49,7 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     val sum = probabilities.sum
     Loops.foreach(0, n)(i => probabilities(i) /= sum)
     val counts = new Array[Int](n)
-    val distribution = PowerLawDistribution(n, beta).symmetric(n + 1)
+    val distribution = PowerLawDistribution(n, beta).symmetric
     distribution.min shouldBe 1
     distribution.max shouldBe n
     val rng = Random(33453236432L)

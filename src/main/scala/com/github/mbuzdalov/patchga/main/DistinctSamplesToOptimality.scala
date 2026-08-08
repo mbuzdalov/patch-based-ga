@@ -93,7 +93,7 @@ object DistinctSamplesToOptimality:
         (d: Int) => UniformDistribution(1, d - 1)
       case Some(s"symmetric-heavy($beta)") =>
         val betaValue = beta.toDouble(1, 3, "NFGA: parameter 'crossover-distance' is symmetric-heavy(beta) for beta is not in [1;3]")
-        (d: Int) => PowerLawDistribution(d - 1, betaValue).symmetric(d)
+        (d: Int) => PowerLawDistribution(d - 1, betaValue).symmetric
       case Some("one-from-better") =>
         (d: Int) => ConstantDistribution(1)
       case Some("one-from-worse") =>
