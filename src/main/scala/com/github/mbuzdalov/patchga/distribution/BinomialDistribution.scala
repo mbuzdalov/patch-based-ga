@@ -37,6 +37,7 @@ object BinomialDistribution:
     override def min: Int = 0
     override def max: Int = n
     override def sample(rng: RandomGenerator): Int = countCoinFlips(n, rng)
+    override def symmetric: IntegerDistribution = this
     
   def apply(n: Int, p: Double): IntegerDistribution =
     if p < 0 || p > 1 then throw IllegalArgumentException(s"p is out of bounds: $p is not in [0;1]")
