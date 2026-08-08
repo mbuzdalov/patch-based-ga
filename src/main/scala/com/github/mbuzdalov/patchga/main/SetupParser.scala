@@ -129,7 +129,7 @@ object SetupParser:
       case "max" => foldOp(index, isBinary = false, "max", args, interpretAsDouble, math.max)
       case "log" => unaryOp(index, "log", args, interpretAsDouble, math.log)
       // the following functions are supported because doubles can sometimes use int contexts
-      case "div" => foldOp[Int](index, isBinary = true, "div", args, interpretAsInt, _ / _).map(v => v)
+      case "div" => foldOp(index, isBinary = true, "div", args, interpretAsInt, _ / _).map(v => v)
       case "floor" => unaryOp(index, "floor", args, interpretAsDouble, math.floor)
       case "ceil" => unaryOp(index, "ceil", args, interpretAsDouble, math.ceil)
       case "round" => unaryOp(index, "round", args, interpretAsDouble, roundDbl)
@@ -179,7 +179,7 @@ object SetupParser:
           case "floor" => unaryOp(index, "floor", args, interpretAsIntDoubleFunction(varName), lift(math.floor))
           case "ceil" => unaryOp(index, "ceil", args, interpretAsIntDoubleFunction(varName), lift(math.ceil))
           case "round" => unaryOp(index, "round", args, interpretAsIntDoubleFunction(varName), lift(roundDbl))
-          case "div" => foldOp[Int => Int](index, isBinary = true, "/", args, interpretAsIntIntFunction(varName), lift(_ / _)).map(f => (v: Int) => f(v).toDouble)
+          case "div" => foldOp(index, isBinary = true, "/", args, interpretAsIntIntFunction(varName), lift(_ / _)).map(f => (v: Int) => f(v).toDouble)
   
   def evaluateAsInt(expr: String): Either[String, Int] =
     parse(expr, exactExpression(using _)) match
