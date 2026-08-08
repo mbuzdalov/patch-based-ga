@@ -32,7 +32,7 @@ object IntegerDistribution:
   private def multiplyByConstant(source: IntegerDistribution, constant: Int): IntegerDistribution =
     val newMin = math.min(source.min * constant, source.max * constant)
     val newMax = math.max(source.min * constant, source.max * constant)
-    assert(newMin <= newMax, "Overflow when adding a constant to a distribution")
+    assert(newMin <= newMax, "Overflow when multiplying a distribution by a constant")
     new IntegerDistribution:
       override def min: Int = newMin
       override def max: Int = newMax
