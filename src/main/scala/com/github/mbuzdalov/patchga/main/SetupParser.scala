@@ -158,7 +158,7 @@ object SetupParser:
         case "floor" => ensureOne(args).map(interpretAsDouble).joinRight.map(v => math.floor(v).toInt)
         case "ceil"  => ensureOne(args).map(interpretAsDouble).joinRight.map(v => math.ceil(v).toInt)
         case "round" => ensureOne(args).map(interpretAsDouble).joinRight.map(v => roundDbl(v).toInt)
-        case _ => error(index, s"Unknown function '$fun'")
+        case _ => error(index, s"Unknown function in the Int context: '$fun'")
   
   private def interpretAsDouble(e: Expression): Either[Errors, Double] = e match
     case Variable(index, name) => error(index, s"Variable '$name' is not a Double")
@@ -180,7 +180,7 @@ object SetupParser:
         case "floor" => ensureOne(args).map(interpretAsDouble).joinRight.map(math.floor)
         case "ceil"  => ensureOne(args).map(interpretAsDouble).joinRight.map(math.ceil)
         case "round" => ensureOne(args).map(interpretAsDouble).joinRight.map(roundDbl)
-        case _ => error(index, s"Unknown function '$fun'")
+        case _ => error(index, s"Unknown function in the Double context: '$fun'")
   
   private def interpretAsIntIntFunction(varName: String)(e: Expression): Either[Errors, Int => Int] =
     // First, try to greedily parse this as int
@@ -203,7 +203,7 @@ object SetupParser:
             case "floor" => ensureOne(args).map(interpretAsIntDoubleFunction(varName)).joinRight.map(lift(v => math.floor(v).toInt))
             case "ceil"  => ensureOne(args).map(interpretAsIntDoubleFunction(varName)).joinRight.map(lift(v => math.ceil(v).toInt))
             case "round" => ensureOne(args).map(interpretAsIntDoubleFunction(varName)).joinRight.map(lift(v => roundDbl(v).toInt))
-            case _ => error(index, s"Unknown function '$fun'")
+            case _ => error(index, s"Unknown function in the Int=>Int context: '$fun'")
   
   private def interpretAsIntDoubleFunction(varName: String)(e: Expression): Either[Errors, Int => Double] =
     // First, try to greedily parse this as double
@@ -229,7 +229,7 @@ object SetupParser:
             case "ceil"  => ensureOne(args).map(interpretAsIntDoubleFunction(varName)).joinRight.map(lift(math.ceil))
             case "round" => ensureOne(args).map(interpretAsIntDoubleFunction(varName)).joinRight.map(lift(roundDbl))
             case "div" => ensureTwo(args).map(interpretAsIntIntFunction(varName).forPair).joinRight.map(lift[Int, Int](_ / _).tupled).map(f => (v: Int) => f(v).toDouble)
-            case _ => error(index, s"Unknown function '$fun'")
+            case _ => error(index, s"Unknown function in the Int=>Double context: '$fun'")
   
   private def interpretAsIntDistributionFunction(varName: String)(e: Expression): Either[Errors, Int => IntegerDistribution] =
     // First, try to interpret this as int => int
@@ -245,7 +245,7 @@ object SetupParser:
               case (size, beta) => (n: Int) => PowerLawDistribution(size(n), beta(n))
             case "binomial" => ensureTwo(args).map((interpretAsIntIntFunction(varName), interpretAsIntDoubleFunction(varName)).lift).joinRight.map:
               case (size, p) => (n: Int) => BinomialDistribution(size(n), p(n))
-            case _ => error(index, s"Unknown function '$fun'")
+            case _ => error(index, s"Unknown function in the Int=>IntegerDistribution context: '$fun'")
         case _ => Left(iiErr) // variables and constants should have been parsed via int=>int
   
   // Distribution: External API
