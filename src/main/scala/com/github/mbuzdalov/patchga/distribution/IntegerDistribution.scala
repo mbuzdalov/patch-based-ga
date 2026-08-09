@@ -49,6 +49,15 @@ trait IntegerDistribution:
   @targetName("negate")
   def unary_- : IntegerDistribution = IntegerDistribution.multiplyByConstant(this, -1)
   
+  @targetName("add")
+  infix def + (that: IntegerDistribution): IntegerDistribution = IntegerDistribution.addDistributions(this, that)
+  
+  @targetName("subtract")
+  infix def - (that: IntegerDistribution): IntegerDistribution = IntegerDistribution.subtractDistributions(this, that)
+  
+  @targetName("multiply")
+  infix def * (that: IntegerDistribution): IntegerDistribution = IntegerDistribution.multiplyDistributions(this, that)
+  
   /**
    * Returns a distribution which is a symmetric version of this distribution,
    * centered around the [`min`;`max`] range.
@@ -74,13 +83,14 @@ object IntegerDistribution:
     def * (that: IntegerDistribution): IntegerDistribution = that * constant
   
   private def multiplyByConstant(source: IntegerDistribution, constant: Int): IntegerDistribution =
-    val newMin = math.min(source.min * constant, source.max * constant)
-    val newMax = math.max(source.min * constant, source.max * constant)
-    assert(newMin <= newMax, "Overflow when multiplying a distribution by a constant")
-    new IntegerDistribution:
-      override def min: Int = newMin
-      override def max: Int = newMax
-      override def sample(rng: RandomGenerator): Int = source.sample(rng) * constant
+    if constant == 0 then ConstantDistribution.zero else
+      val newMin = math.min(source.min * constant, source.max * constant)
+      val newMax = math.max(source.min * constant, source.max * constant)
+      assert(newMin <= newMax, "Overflow when multiplying a distribution by a constant")
+      new IntegerDistribution:
+        override def min: Int = newMin
+        override def max: Int = newMax
+        override def sample(rng: RandomGenerator): Int = source.sample(rng) * constant
   
   private def addConstant(source: IntegerDistribution, constant: Int): IntegerDistribution =
     val newMin = source.min + constant
@@ -98,3 +108,44 @@ object IntegerDistribution:
       override def sample(rng: RandomGenerator): Int =
         val base = source.sample(rng)
         if rng.nextBoolean() then base else source.min + source.max - base
+
+  private def addDistributions(left: IntegerDistribution, right: IntegerDistribution): IntegerDistribution =
+    if right.min == right.max then left + right.min
+    else if left.min == left.max then left.min + right
+    else
+      val newMin = left.min + right.min
+      val newMax = left.max + right.max
+      require(newMin <= newMax, "Overflow when adding two distributions")
+      new IntegerDistribution:
+        override def min: Int = newMin
+        override def max: Int = newMax
+        override def sample(rng: RandomGenerator): Int = left.sample(rng) + right.sample(rng)
+        
+  private def subtractDistributions(left: IntegerDistribution, right: IntegerDistribution): IntegerDistribution =
+    if right.min == right.max then left - right.min
+    else if left.min == left.max then left.min - right
+    else
+      val newMin = left.min - right.max
+      val newMax = left.max - right.min
+      require(newMin <= newMax, "Overflow when subtracting two distributions")
+      new IntegerDistribution:
+        override def min: Int = newMin
+        override def max: Int = newMax
+        override def sample(rng: RandomGenerator): Int = left.sample(rng) - right.sample(rng)
+  
+  private def multiplyDistributions(left: IntegerDistribution, right: IntegerDistribution): IntegerDistribution =
+    if right.min == right.max then left * right.min
+    else if left.min == left.max then left.min * right
+    else
+      val minMin = left.min * right.min
+      val minMax = left.min * right.max
+      val maxMin = left.max * right.min
+      val maxMax = left.max * right.max
+      val newMin = math.min(math.min(minMin, minMax), math.min(maxMin, maxMax))
+      val newMax = math.max(math.max(minMin, minMax), math.max(maxMin, maxMax))
+      // There should be much more checks with these...
+      require(newMin <= newMax, "Overflow when multiplying two distributions")
+      new IntegerDistribution:
+        override def min: Int = newMin
+        override def max: Int = newMax
+        override def sample(rng: RandomGenerator): Int = left.sample(rng) * right.sample(rng)

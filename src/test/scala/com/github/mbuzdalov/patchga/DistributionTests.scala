@@ -108,3 +108,34 @@ class DistributionTests extends AnyFlatSpec with Matchers:
     33 + UniformDistribution(0, 9) shouldEqual UniformDistribution(33, 42)
     -UniformDistribution(4, 9) shouldEqual UniformDistribution(-9, -4)
     UniformDistribution(3, 6).symmetric shouldEqual UniformDistribution(3, 6)
+
+  private val testDistributions = Seq(
+    UniformDistribution(-3, 3),
+    PowerLawDistribution(5, 1.5),
+    ConstantDistribution(42),
+    ConstantDistribution(0),
+    BinomialDistribution(4, 0.25)
+  )
+
+  private def distributionMinMaxOk(dist: IntegerDistribution): Unit =
+    var minRecorded = Int.MaxValue
+    var maxRecorded = Int.MinValue
+    val rng = new Random(24383963457945L)
+    Loops.repeat(100000):
+      val sample = dist.sample(rng)
+      sample should be <= dist.max
+      sample should be >= dist.min
+      minRecorded = math.min(minRecorded, sample)
+      maxRecorded = math.max(maxRecorded, sample)
+    minRecorded shouldBe dist.min
+    maxRecorded shouldBe dist.max
+  
+  "Sum of two distributions" should "cover min and max" in:
+    for d1 <- testDistributions; d2 <- testDistributions do distributionMinMaxOk(d1 + d2)
+  
+  "Difference of two distributions" should "cover min and max" in :
+    for d1 <- testDistributions; d2 <- testDistributions do distributionMinMaxOk(d1 - d2)
+  
+  "Product of two distributions" should "cover min and max" in :
+    for d1 <- testDistributions; d2 <- testDistributions do distributionMinMaxOk(d1 * d2)
+    
