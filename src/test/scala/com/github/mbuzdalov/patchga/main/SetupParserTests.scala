@@ -152,6 +152,7 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
       "1 + binomial(max(0, x - 2), 0.5)" -> ((x: Int) => 1 + BinomialDistribution(math.max(0, x - 2), 0.5)),
       "1 + powerLaw(max(1, x - 2), 1.5)" -> ((x: Int) => 1 + PowerLawDistribution(math.max(1, x - 2), 1.5)),
       "2 * binomial(x div 2, 1 / x) - uniform(x div 2, x)" -> ((x: Int) => 2 * BinomialDistribution(x / 2, 1.0 / x) - UniformDistribution(x / 2, x)),
+      "symmetric(4 * uniform(4 * x, 5 * x))" -> ((x: Int) => (4 * UniformDistribution(4 * x, 5 * x)).symmetric),
     )) do SetupParser.evaluateAsIntDistributionFunction(str, "x") match
       case Left(err) => fail(s"Distribution '$str' should succeed but failed with errors:\n$err")
       case Right(fun) => Loops.foreach(1, 239): i =>

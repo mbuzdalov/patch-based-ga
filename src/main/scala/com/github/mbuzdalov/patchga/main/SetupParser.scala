@@ -242,6 +242,7 @@ object SetupParser:
             case "+" => ensureTwo(args).map(interpretAsIntDistributionFunction(varName).forPair).joinRight.map(lift[Int, IntegerDistribution](_ + _).tupled)
             case "-" => ensureTwo(args).map(interpretAsIntDistributionFunction(varName).forPair).joinRight.map(lift[Int, IntegerDistribution](_ - _).tupled)
             case "*" => ensureTwo(args).map(interpretAsIntDistributionFunction(varName).forPair).joinRight.map(lift[Int, IntegerDistribution](_ * _).tupled)
+            case "symmetric" => ensureOne(args).map(interpretAsIntDistributionFunction(varName)).joinRight.map(lift(_.symmetric))
             case "uniform" => ensureTwo(args).map(interpretAsIntIntFunction(varName).forPair).joinRight.map:
               case (min, max) => (n: Int) => UniformDistribution(min(n), max(n))
             case "powerLaw" => ensureTwo(args).map((interpretAsIntIntFunction(varName), interpretAsIntDoubleFunction(varName)).lift).joinRight.map:
