@@ -1,6 +1,6 @@
 package com.github.mbuzdalov.patchga.main
 
-import com.github.mbuzdalov.patchga.distribution.IntegerDistribution
+import com.github.mbuzdalov.patchga.distribution.*
 import com.github.mbuzdalov.patchga.util.Loops
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -125,28 +125,22 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
           val found = fun(i)
           if expected != found && !(expected.isNaN && found.isNaN) then fail(s"Function '$str': on x = $i, expected $expected found $found")
 
-end SetupParserTests
-
-/*
-
-  "Evaluator of integer expressions" should "work on examples" in:
+  private def validateDistributions(expected: IntegerDistribution, found: IntegerDistribution, name: String, n: Int): Unit =
+    if found.min != expected.min then fail(s"Distribution $name, size $n: minimum expected ${expected.min} found ${found.min}")
+    if found.max != expected.max then fail(s"Distribution $name, size $n: maximum expected ${expected.max} found ${found.max}")
   
-  
-
-  "Parser for integer distributions" should "succeed on examples" in:
-    for (str <- Seq(
-      "n=>[1..n]",
-      "n => 1",
-      "d => [1..d-2] + 1",
-      "n => uniform(0, n / 2)",
-      "d => binomial(d, 1 / d)",
-      "n => powerLaw(n, 1.5)",
-      "n => powerLaw(n, 1.5) + binomial(n, 2 / n) * 2",
-      "d => 1 + [1..d-2]",
-      "d => 1 + [1..d-4/2]",
-      "d => d/2 + [1..d/2]",
-    )) do
-      parse(str, distribution(using _)) match
-        case f: Failure => fail(s"Distribution '$str' should parse, but the following happened:\n${f.trace().longAggregateMsg}")
-        case s: Success[Int => IntegerDistribution] =>
- */
+  "Parser for integer distributions" should "parse plain literals well" in:
+    for ((str, dist) <- Seq(
+      "42" -> ((x: Int) => ConstantDistribution(42)),
+      "uniform(0, 5)" -> ((x: Int) => UniformDistribution(0, 5)),
+      "uniform(x div 2, x)" -> ((x: Int) => UniformDistribution(x / 2, x)),
+      "powerLaw(x, 1.5)" -> ((x: Int) => PowerLawDistribution(x, 1.5)),
+      "powerLaw(4 * x, 2.5)" -> ((x: Int) => PowerLawDistribution(4 * x, 2.5)),
+      "powerLaw(round(3 + log(x + 1)), 2)" -> ((x: Int) => PowerLawDistribution(math.round(3 + math.log(x + 1)).toInt, 2)),
+      "binomial(x, 0.5)" -> ((x: Int) => BinomialDistribution(x, 0.5)),
+    )) do SetupParser.evaluateAsIntDistributionFunction(str, "x") match
+      case Left(err) => fail(s"Distribution '$str' should succeed byt failed with errors:\n$err")
+      case Right(fun) => Loops.foreach(1, 239): i =>
+        val expected = dist(i)
+        val found = fun(i)
+        validateDistributions(expected, found, str, i)

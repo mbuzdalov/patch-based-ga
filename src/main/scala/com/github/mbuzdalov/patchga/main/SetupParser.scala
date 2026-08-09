@@ -5,10 +5,10 @@ import com.github.mbuzdalov.patchga.util.Loops
 import fastparse.*
 import fastparse.Parsed.{Failure, Success}
 
-import scala.reflect.{ClassTag, ensureAccessible}
+import scala.reflect.ClassTag
 
 object SetupParser:
-  import SingleLineWhitespace._
+  import SingleLineWhitespace.*
   
   // General definitions for all parsers
 
@@ -129,6 +129,16 @@ object SetupParser:
       val errors = errorBuilder.result()
       if errors.isEmpty then Right(IArray.unsafeFromArray(result)) else Left(errors)
   
+  extension[A, B](pair: (Expression => Either[Errors, A], Expression => Either[Errors, B]))
+    private def lift(arg: (Expression, Expression)): Either[Errors, (A, B)] =
+      pair._1(arg._1) match
+        case Left(e1) => pair._2(arg._2) match
+          case Left(e2) => Left(e1 ++ e2)
+          case Right(v2) => Left(e1)
+        case Right(v1) => pair._2(arg._2) match
+          case Left(e2) => Left(e2)
+          case Right(v2) => Right(v1, v2)
+  
   // Distribution: Actual interpreters
   
   private def interpretAsInt(e: Expression): Either[Errors, Int] = e match
@@ -226,11 +236,16 @@ object SetupParser:
     interpretAsIntIntFunction(varName)(e) match
       case Right(v) => Right((n: Int) => ConstantDistribution(v(n)))
       case Left(iiErr) => e match
-        case Application(index, fun, args) => fun match
-          case "uniform" => ???
-          case "powerLaw" => ???
-          case "binomial" => ???
-          case _ => error(index, s"Unknown function '$fun'")
+        case a@Application(index, fun, args) =>
+          given Application = a
+          fun match
+            case "uniform" => ensureTwo(args).map(interpretAsIntIntFunction(varName).forPair).joinRight.map:
+              case (min, max) => (n: Int) => UniformDistribution(min(n), max(n))
+            case "powerLaw" => ensureTwo(args).map((interpretAsIntIntFunction(varName), interpretAsIntDoubleFunction(varName)).lift).joinRight.map:
+              case (size, beta) => (n: Int) => PowerLawDistribution(size(n), beta(n))
+            case "binomial" => ensureTwo(args).map((interpretAsIntIntFunction(varName), interpretAsIntDoubleFunction(varName)).lift).joinRight.map:
+              case (size, p) => (n: Int) => BinomialDistribution(size(n), p(n))
+            case _ => error(index, s"Unknown function '$fun'")
         case _ => Left(iiErr) // variables and constants should have been parsed via int=>int
   
   // Distribution: External API
@@ -253,5 +268,10 @@ object SetupParser:
   def evaluateAsIntDoubleFunction(expr: String, varName: String): Either[String, Int => Double] =
     parse(expr, DistributionParser.exactExpression(using _)) match
       case Success(tree, _) => interpretAsIntDoubleFunction(varName)(tree).left.map(prettyPrintErrors(expr))
+      case f: Failure => Left(f.trace().longAggregateMsg)
+      
+  def evaluateAsIntDistributionFunction(expr: String, varName: String): Either[String, Int => IntegerDistribution] =
+    parse(expr, DistributionParser.exactExpression(using _)) match
+      case Success(tree, _) => interpretAsIntDistributionFunction(varName)(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
 end SetupParser
