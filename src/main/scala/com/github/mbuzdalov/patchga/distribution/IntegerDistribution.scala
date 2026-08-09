@@ -69,9 +69,9 @@ end IntegerDistribution
 
 object IntegerDistribution:
   extension (constant: Int)
-    def + (that: IntegerDistribution): IntegerDistribution = addConstant(that, constant)
-    def - (that: IntegerDistribution): IntegerDistribution = addConstant(-that, constant)
-    def * (that: IntegerDistribution): IntegerDistribution = multiplyByConstant(that, constant)
+    def + (that: IntegerDistribution): IntegerDistribution = that + constant
+    def - (that: IntegerDistribution): IntegerDistribution = -that + constant
+    def * (that: IntegerDistribution): IntegerDistribution = that * constant
   
   private def multiplyByConstant(source: IntegerDistribution, constant: Int): IntegerDistribution =
     val newMin = math.min(source.min * constant, source.max * constant)

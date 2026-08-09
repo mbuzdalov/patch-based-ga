@@ -96,12 +96,15 @@ class DistributionTests extends AnyFlatSpec with Matchers:
   "ConstantDistribution" should "have correct arithmetic overrides" in:
     ConstantDistribution(0) + 5 shouldEqual ConstantDistribution(5)
     ConstantDistribution(5) - 6 shouldEqual ConstantDistribution(-1)
+    5 - ConstantDistribution(6) shouldEqual ConstantDistribution(-1)
     ConstantDistribution(4) * 7 shouldEqual ConstantDistribution(28)
+    4 * ConstantDistribution(7) shouldEqual ConstantDistribution(28)
     -ConstantDistribution(7) shouldEqual ConstantDistribution(-7)
     ConstantDistribution(8).symmetric shouldEqual ConstantDistribution(8)
   
   "UniformDistribution" should "have correct arithmetic overrides" in:
     UniformDistribution(2, 9) - 3 shouldEqual UniformDistribution(-1, 6)
     UniformDistribution(0, 33) + 9 shouldEqual UniformDistribution(9, 42)
+    33 + UniformDistribution(0, 9) shouldEqual UniformDistribution(33, 42)
     -UniformDistribution(4, 9) shouldEqual UniformDistribution(-9, -4)
     UniformDistribution(3, 6).symmetric shouldEqual UniformDistribution(3, 6)
