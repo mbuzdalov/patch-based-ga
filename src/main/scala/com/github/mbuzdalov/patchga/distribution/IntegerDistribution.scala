@@ -4,8 +4,37 @@ import java.util.random.RandomGenerator
 import scala.annotation.targetName
 
 trait IntegerDistribution:
+  /**
+   * Returns the minimum value ever returned from `sample`.
+   *
+   * This value should be computed in such a way that this value is returned with probability > 0 in the ideal world.
+   * For example, `BinomialDistribution(100, 0.999999)` will return 0, even though the probability of this to happen
+   * is 10^{-600} and in double-precision this number is zero. However, `BinomialDistribution(100, 1)` will return
+   * 100, because returning anything other than 100 happens with probability 0.
+   *
+   * @return the minimum value sampled.
+   */
   def min: Int
+
+  /**
+   * Returns the maximum value ever returned from `sample`.
+   *
+   * This value should be computed in such a way that this value is returned with probability > 0 in the ideal world.
+   * For example, `BinomialDistribution(100, 0.000001)` will return 100, even though the probability of this to happen
+   * is 10^{-600} and in double-precision this number is zero. However, `BinomialDistribution(100, 0)` will return
+   * 0, because returning anything other than 0 happens with probability 0.
+   *
+   * @return the maximum value sampled.
+   */
   def max: Int
+  
+  /**
+   * Samples an integer using the provided random number generator and returns it.
+   * This value will always be at least `min` and at most `max`.
+   *
+   * @param rng the random number generator to use.
+   * @return the sampled number.
+   */
   def sample(rng: RandomGenerator): Int
 
   @targetName("add")
@@ -20,6 +49,21 @@ trait IntegerDistribution:
   @targetName("negate")
   def unary_- : IntegerDistribution = IntegerDistribution.multiplyByConstant(this, -1)
   
+  /**
+   * Returns a distribution which is a symmetric version of this distribution,
+   * centered around the [`min`;`max`] range.
+   *
+   * This means that, in the returned distribution, the probability of sampling a number `X`` is the same as
+   * the probability of sampling a number `max`+`min`-`X`. This probability is an average of the probabilities
+   * to sample these two numbers in the original distribution.
+   *
+   * Note that the distributions generally bear no identification for how they were created.
+   * For instance, `BinomialDistribution(n, p).symmetric` does not automatically have `min = 0` and `max = n`,
+   * because if `p = 0` or `p = 1`, the range will collapse,
+   * and this method will no longer produce what one may imply.
+   *
+   * @return the symmetric version of this distribution.
+   */
   def symmetric: IntegerDistribution = IntegerDistribution.symmetric(this)
 end IntegerDistribution
 
