@@ -132,6 +132,8 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
   "Parser for integer distributions" should "parse plain literals well" in:
     for ((str, dist) <- Seq(
       "42" -> ((x: Int) => ConstantDistribution(42)),
+      "4 * x div 3" -> ((x: Int) => ConstantDistribution(4 * x / 3)),
+      "4 * (x div 3)" -> ((x: Int) => ConstantDistribution(4 * (x / 3))),
       "uniform(0, 5)" -> ((x: Int) => UniformDistribution(0, 5)),
       "uniform(x div 2, x)" -> ((x: Int) => UniformDistribution(x / 2, x)),
       "powerLaw(x, 1.5)" -> ((x: Int) => PowerLawDistribution(x, 1.5)),
@@ -139,7 +141,7 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
       "powerLaw(round(3 + log(x + 1)), 2)" -> ((x: Int) => PowerLawDistribution(math.round(3 + math.log(x + 1)).toInt, 2)),
       "binomial(x, 0.5)" -> ((x: Int) => BinomialDistribution(x, 0.5)),
     )) do SetupParser.evaluateAsIntDistributionFunction(str, "x") match
-      case Left(err) => fail(s"Distribution '$str' should succeed byt failed with errors:\n$err")
+      case Left(err) => fail(s"Distribution '$str' should succeed but failed with errors:\n$err")
       case Right(fun) => Loops.foreach(1, 239): i =>
         val expected = dist(i)
         val found = fun(i)
