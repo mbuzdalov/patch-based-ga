@@ -239,6 +239,9 @@ object SetupParser:
         case a@Application(index, fun, args) =>
           given Application = a
           fun match
+            case "+" => ensureTwo(args).map(interpretAsIntDistributionFunction(varName).forPair).joinRight.map(lift[Int, IntegerDistribution](_ + _).tupled)
+            case "-" => ensureTwo(args).map(interpretAsIntDistributionFunction(varName).forPair).joinRight.map(lift[Int, IntegerDistribution](_ - _).tupled)
+            case "*" => ensureTwo(args).map(interpretAsIntDistributionFunction(varName).forPair).joinRight.map(lift[Int, IntegerDistribution](_ * _).tupled)
             case "uniform" => ensureTwo(args).map(interpretAsIntIntFunction(varName).forPair).joinRight.map:
               case (min, max) => (n: Int) => UniformDistribution(min(n), max(n))
             case "powerLaw" => ensureTwo(args).map((interpretAsIntIntFunction(varName), interpretAsIntDoubleFunction(varName)).lift).joinRight.map:
