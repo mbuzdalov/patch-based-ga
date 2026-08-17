@@ -1,11 +1,12 @@
 package com.github.mbuzdalov.patchga.algorithm
 
-import com.github.mbuzdalov.patchga.distribution.PowerLawDistribution
+import com.github.mbuzdalov.patchga.distribution.IntegerDistribution
 import com.github.mbuzdalov.patchga.util.Loops
 
 import scala.annotation.tailrec
 
-class OnePlusLLGA(mutationDistanceBeta: Double, crossoverDistanceBeta: Double) extends Optimizer:
+class OnePlusLLGA(mutationDistanceDistributionSource: Int => IntegerDistribution,
+                  crossoverDistanceDistributionSource: Int => IntegerDistribution) extends Optimizer:
   override def optimize(config: Optimizer.Config): Nothing =
     import config.*
   
@@ -19,15 +20,24 @@ class OnePlusLLGA(mutationDistanceBeta: Double, crossoverDistanceBeta: Double) e
         else discardH(next)
       theBest  
     
+    val mutationDistanceDist = mutationDistanceDistributionSource(maximumPatchSize)
+    require(mutationDistanceDist.min >= 0)
+    require(mutationDistanceDist.max <= maximumPatchSize)
+    
     @tailrec
     def go(parent: IndividualHandle): Nothing =
-      val mutSize = PowerLawDistribution.sample(maximumPatchSize, mutationDistanceBeta, random)
-      val competitor = if mutSize == 1 then mutateH(parent, 1) else
+      val mutSize = mutationDistanceDist.sample(random)
+      val competitor = if mutSize == 0 then parent 
+      else if mutSize == 1 then mutateH(parent, 1) 
+      else
+        val crossoverDistanceDist = crossoverDistanceDistributionSource(mutSize - 1)
+        require(crossoverDistanceDist.min >= 0)
+        require(crossoverDistanceDist.max < mutSize)
         val bestMutant = bestOfN(mutSize, mutateH(parent, mutSize))
         if compare(fitnessH(bestMutant), fitnessH(parent)) > 0 then bestMutant else
           // it is important to not factor out sampling, because the second argument of bestOfN is by-name   
           bestOfN(mutSize, crossoverH(parent, bestMutant,
-            inDifferingBits = _ => PowerLawDistribution.sample(mutSize - 1, crossoverDistanceBeta, random),
+            inDifferingBits = _ => crossoverDistanceDist.sample(random),
             inSameBits = _ => 0))
       if compare(fitnessH(competitor), fitnessH(parent)) >= 0 then
         discardH(parent)

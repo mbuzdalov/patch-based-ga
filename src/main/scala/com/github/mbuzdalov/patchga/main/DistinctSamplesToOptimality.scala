@@ -133,9 +133,11 @@ object DistinctSamplesToOptimality:
   
   private def readOnePlusLLGA(r: KindaYamlReader): Optimizer =
     val params = readParams(r)
+    val mutDistBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: ")
+    val crossDistBeta = "crossover-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: ")
     OnePlusLLGA(
-      mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
-      crossoverDistanceBeta = "crossover-distance-beta".doubleFrom(params, 1, 3, "(1+(L,L)) GA: "),
+      mutationDistanceDistributionSource = PowerLawDistribution(_, mutDistBeta),
+      crossoverDistanceDistributionSource = PowerLawDistribution(_, crossDistBeta),
     )
   
   private def readMuPlusOneGA(mu: Int, r: KindaYamlReader): Optimizer =

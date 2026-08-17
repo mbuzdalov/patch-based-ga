@@ -1,7 +1,7 @@
 package com.github.mbuzdalov.patchga
 
 import com.github.mbuzdalov.patchga.algorithm.*
-import com.github.mbuzdalov.patchga.distribution.BinomialDistribution
+import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, PowerLawDistribution}
 import com.github.mbuzdalov.patchga.problem.Problems
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -54,7 +54,7 @@ class IncrementalOneMaxTests extends IntProblemTestsBase:
   "(1+(L,L)) GA on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(128, 256, 512)
               (n => 4 * n * math.log(math.log(n)))
-              (OnePlusLLGA(2.5, 2.5))
+              (OnePlusLLGA(PowerLawDistribution(_, 2.5), PowerLawDistribution(_, 2.5)))
               (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true, disableDiscard = false))
 
   // NFGA
