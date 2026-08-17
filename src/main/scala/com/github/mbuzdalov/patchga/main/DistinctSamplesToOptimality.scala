@@ -120,7 +120,7 @@ object DistinctSamplesToOptimality:
       case None => firstParentSelectionBeta
       case Some(v) => "mutation-parent-selection-beta".doubleFrom(params, 0, Double.PositiveInfinity, "NFGA: ")
     
-    NeverForgettingGA(
+    NeverForgettingGA.withPowerLaw(
       mutationParentSelectionBeta = mutationParentSelectionBeta,
       mutationDistanceBeta = "mutation-distance-beta".doubleFrom(params, 1, 3, "NFGA: "),
       firstParentSelectionBeta = firstParentSelectionBeta,

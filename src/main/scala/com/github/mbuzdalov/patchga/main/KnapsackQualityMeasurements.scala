@@ -20,12 +20,12 @@ object KnapsackQualityMeasurements:
         "(2+1) hGA" -> MuPlusOneGA.withPowerLawMutation(2, 1, 1.5),
         "(10+1) GA" -> MuPlusOneGA.withStandardBitMutation(10, 1, 1.4),
         "(10+1) hGA" -> MuPlusOneGA.withPowerLawMutation(10, 1, 1.5),
-        "NFGA [dist 1.5 other 2.5]" -> new NeverForgettingGA(2.5, 1.5, 2.5, 0.5, 1.5, None, 2.5, d => PowerLawDistribution(d - 1, 2.5).symmetric),
-        "NFGA [all 1.5]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => PowerLawDistribution(d - 1, 1.5).symmetric),
-        "NFGA [all 1.5, UX]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => BinomialDistribution(d - 2, 0.5) + 1),
-        "NFGA [all 1.5, US]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => UniformDistribution(1, d - 1)),
-        "NFGA [all 1.5, F1]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => ConstantDistribution(1)),
-        "NFGA [all 1.5, S1]" -> new NeverForgettingGA(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => ConstantDistribution(d - 1)),
+        "NFGA [dist 1.5 other 2.5]" -> NeverForgettingGA.withPowerLaw(2.5, 1.5, 2.5, 0.5, 1.5, None, 2.5, d => PowerLawDistribution(d - 1, 2.5).symmetric),
+        "NFGA [all 1.5]" -> NeverForgettingGA.withPowerLaw(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => PowerLawDistribution(d - 1, 1.5).symmetric),
+        "NFGA [all 1.5, UX]" -> NeverForgettingGA.withPowerLaw(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => BinomialDistribution(d - 2, 0.5) + 1),
+        "NFGA [all 1.5, US]" -> NeverForgettingGA.withPowerLaw(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => UniformDistribution(1, d - 1)),
+        "NFGA [all 1.5, F1]" -> NeverForgettingGA.withPowerLaw(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => ConstantDistribution(1)),
+        "NFGA [all 1.5, S1]" -> NeverForgettingGA.withPowerLaw(1.5, 1.5, 1.5, 0.5, 1.5, None, 1.5, d => ConstantDistribution(d - 1)),
         "DEGA+" -> DEGAPlus.withStandardBitMutation,
       )
       case "(2+1)" => for cc <- 8 to 15; c = (1 << cc) * 0.001 yield

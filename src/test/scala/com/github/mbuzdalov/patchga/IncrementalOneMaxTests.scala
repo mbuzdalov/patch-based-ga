@@ -62,5 +62,5 @@ class IncrementalOneMaxTests extends IntProblemTestsBase:
   "NFGA with UX on OneMax" should "work well with single-slot MST-based population" in
     simpleTest(64, 128, 256)
       (n => 4 * n * math.log(math.log(n)))
-      (NeverForgettingGA(2.5, 1.5, 2.5, 0.5, 1.5, None, 2.5, n => BinomialDistribution(n - 2, 0.5) + 1))
+      (NeverForgettingGA.withPowerLaw(2.5, 1.5, 2.5, 0.5, 1.5, None, 2.5, n => BinomialDistribution(n - 2, 0.5) + 1))
       (n => Problems.incrementalOneMaxFT(n, allowDuplicates = true, disableDiscard = false))

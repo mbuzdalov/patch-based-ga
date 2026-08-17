@@ -6,13 +6,13 @@ import com.github.mbuzdalov.patchga.util.Loops
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
-class NeverForgettingGA(mutationParentSelectionBeta: Double,
-                        mutationDistanceBeta: Double,
-                        firstParentSelectionBeta: Double,
+class NeverForgettingGA(mutationParentSelectionSource: Int => IntegerDistribution,
+                        mutationDistanceSource: Int => IntegerDistribution,
+                        firstParentSelectionSource: Int => IntegerDistribution,
                         crossoverProbability: Double,
-                        crossoverParentMinimumDistanceBeta: Double,
+                        crossoverParentMinimumDistanceSource: Int => IntegerDistribution,
                         crossoverParentMaximumDistance: Option[Int => Int],
-                        secondParentSelectionBeta: Double,
+                        secondParentSelectionSource: Int => IntegerDistribution,
                         crossoverDistanceSource: Int => IntegerDistribution) extends Optimizer:
   override def optimize(config: Optimizer.Config): Nothing =
     import config.*
@@ -35,8 +35,11 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
         nodesSorted(idx) = h
         idx -= 1
     
-    def sampleParent(source: ArrayBuffer[IndividualHandle], beta: Double): IndividualHandle =
-      val index0 = PowerLawDistribution.sample(source.size, beta, random) - 1
+    def sampleParent(source: ArrayBuffer[IndividualHandle], distSource: Int => IntegerDistribution): IndividualHandle =
+      val dist = distSource(source.size)
+      require(dist.min == 1, s"Parent sampling distribution with minimum ${dist.min} is likely a bug, should be 1")
+      require(dist.max <= source.size)
+      val index0 = dist.sample(random) - 1
       val fitness0 = fitnessH(source(index0))
       var indexLo = index0
       while indexLo > 0 && compare(fitnessH(source(indexLo - 1)), fitness0) == 0 do indexLo -= 1
@@ -51,7 +54,7 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
     
     @tailrec
     def sampleFirstParentWithDistantEnoughNeighbors(nRemaining: Int): Option[IndividualHandle] =
-      val parent = sampleParent(nodesSorted, firstParentSelectionBeta)
+      val parent = sampleParent(nodesSorted, firstParentSelectionSource)
       distanceBuffer.clear()
       collectDistanceToHandles(parent): (_, d) => 
         if crossoverDistanceOK(d) && !distanceSeen(d) then
@@ -61,6 +64,10 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
       if distanceBuffer.nonEmpty then Some(parent)
       else if nRemaining == 0 then None
       else sampleFirstParentWithDistantEnoughNeighbors(nRemaining - 1)
+    
+    val mutationDistanceDistribution = mutationDistanceSource(maximumPatchSize)
+    require(mutationDistanceDistribution.min >= 0)
+    require(mutationDistanceDistribution.max <= maximumPatchSize)
     
     Loops.forever:
       // If crossover is to be invoked, there is a possibility that finding a parent fails.
@@ -80,21 +87,45 @@ class NeverForgettingGA(mutationParentSelectionBeta: Double,
           // the first parent is sampled such that it has individuals at distance > 1
           // sample a distance out of the valid ones
           distanceBuffer.sortInPlace()
-          val secondParentDistance = distanceBuffer(PowerLawDistribution.sample(distanceBuffer.size, crossoverParentMinimumDistanceBeta, random) - 1)
+          val secondParentDistanceDistribution = crossoverParentMinimumDistanceSource(distanceBuffer.size)
+          require(secondParentDistanceDistribution.min == 1, 
+            s"Second parent distance distribution with min = ${secondParentDistanceDistribution.min} is likely a bug, should be 1")
+          require(secondParentDistanceDistribution.max <= distanceBuffer.size)
+          val secondParentDistance = distanceBuffer(secondParentDistanceDistribution.sample(random) - 1)
           // collect individuals at distance which is at least as much as the found distance, and sample one
           collectHandlesAtDistance(firstParent, _ >= secondParentDistance, crossoverSecondParentBuffer)
           crossoverSecondParentBuffer.sortInPlace()(using inverseFitnessOrdering)
           // sample crossover distance and perform crossover
-          val secondParent = sampleParent(crossoverSecondParentBuffer, secondParentSelectionBeta)
+          val secondParent = sampleParent(crossoverSecondParentBuffer, secondParentSelectionSource)
           val crossoverDistanceDistribution = crossoverDistanceSource(secondParentDistance)
           assert(crossoverDistanceDistribution.min >= 1)
           assert(crossoverDistanceDistribution.max < secondParentDistance)
           val crossoverDistance = crossoverDistanceDistribution.sample(random)
           crossoverH(firstParent, secondParent, _ => crossoverDistance, _ => 0)
         case None => // mutation
-          val parent = sampleParent(nodesSorted, mutationParentSelectionBeta)
-          val change = PowerLawDistribution.sample(maximumPatchSize, mutationDistanceBeta, random)
+          val parent = sampleParent(nodesSorted, mutationParentSelectionSource)
+          val change = mutationDistanceDistribution.sample(random)
           mutateH(parent, change)
 
       // if the just-sampled node is new, add it to the pool
       if nextNode.referenceCount == 1 then insertionSortAdd(nextNode)
+
+object NeverForgettingGA:
+  def withPowerLaw(mutationParentSelectionBeta: Double, 
+                   mutationDistanceBeta: Double, 
+                   firstParentSelectionBeta: Double, 
+                   crossoverProbability: Double,
+                   crossoverParentMinimumDistanceBeta: Double,
+                   crossoverParentMaximumDistance: Option[Int => Int],
+                   secondParentSelectionBeta: Double,
+                   crossoverDistanceSource: Int => IntegerDistribution): NeverForgettingGA = NeverForgettingGA(
+    mutationParentSelectionSource = PowerLawDistribution(_, mutationParentSelectionBeta),
+    mutationDistanceSource = PowerLawDistribution(_, mutationDistanceBeta),
+    firstParentSelectionSource = PowerLawDistribution(_, firstParentSelectionBeta),
+    crossoverProbability = crossoverProbability,
+    crossoverParentMinimumDistanceSource = PowerLawDistribution(_, crossoverParentMinimumDistanceBeta),
+    crossoverParentMaximumDistance = crossoverParentMaximumDistance,
+    secondParentSelectionSource = PowerLawDistribution(_, secondParentSelectionBeta),
+    crossoverDistanceSource = crossoverDistanceSource,
+  )
+  
