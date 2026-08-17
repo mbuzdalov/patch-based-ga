@@ -90,16 +90,15 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
   
   "Parser for int=>int functions" should "work on examples" in:
     for ((str, fn) <- Seq(
-      "x" -> ((x: Int) => x),
-      "59" -> ((x: Int) => 59),
-      "x + 42" -> ((x: Int) => x + 42),
-      "x * (x-4)" -> ((x: Int) => x * (x - 4)),
-      "-x" -> ((x: Int) => -x),
-      "-(4 + x)" -> ((x: Int) => -(4 + x)),
-      "min(x, -x)" -> ((x: Int) => math.min(x, -x)),
-      //"binLog(5 * x)" -> ((x: Int) => math.ceil(math.log(5 * x) / math.log(2)).toInt),
+      "x => x" -> ((x: Int) => x),
+      "x => 59" -> ((x: Int) => 59),
+      "x => x + 42" -> ((x: Int) => x + 42),
+      "x => x * (x-4)" -> ((x: Int) => x * (x - 4)),
+      "x => -x" -> ((x: Int) => -x),
+      "x => -(4 + x)" -> ((x: Int) => -(4 + x)),
+      "x => min(x, -x)" -> ((x: Int) => math.min(x, -x)),
     )) do
-      SetupParser.evaluateAsIntIntFunction(str, "x") match
+      SetupParser.evaluateAsIntIntFunction(str) match
         case Left(err) => fail(s"Function '$str' should succeed but failed with errors:\n$err")
         case Right(fun) => Loops.foreach(-239, 239): i =>
           val expected = fn(i)
@@ -108,17 +107,16 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
   
   "Parser for int=>double functions" should "work on examples" in :
     for ((str, fn) <- Seq(
-      "x" -> ((x: Int) => x.toDouble),
-      "59.7" -> ((x: Int) => 59.7),
-      "x + 3.14147" -> ((x: Int) => x + 3.14147),
-      "x * (x-4.3)" -> ((x: Int) => x * (x - 4.3)),
-      "-x" -> ((x: Int) => -x.toDouble),
-      "-(3.5 + x)" -> ((x: Int) => -(3.5 + x)),
-      "min(x, -x)" -> ((x: Int) => math.min(x, -x).toDouble),
-      //"binLog(5 * x)" -> ((x: Int) => math.log(5 * x) / math.log(2)),
-      "log(5.6 * x)" -> ((x: Int) => math.log(5.6 * x)),
+      "x => x" -> ((x: Int) => x.toDouble),
+      "x => 59.7" -> ((x: Int) => 59.7),
+      "x => x + 3.14147" -> ((x: Int) => x + 3.14147),
+      "x => x * (x-4.3)" -> ((x: Int) => x * (x - 4.3)),
+      "x => -x" -> ((x: Int) => -x.toDouble),
+      "x => -(3.5 + x)" -> ((x: Int) => -(3.5 + x)),
+      "x => min(x, -x)" -> ((x: Int) => math.min(x, -x).toDouble),
+      "x => log(5.6 * x)" -> ((x: Int) => math.log(5.6 * x)),
     )) do
-      SetupParser.evaluateAsIntDoubleFunction(str, "x") match
+      SetupParser.evaluateAsIntDoubleFunction(str) match
         case Left(err) => fail(s"Function '$str' should succeed but failed with errors:\n$err")
         case Right(fun) => Loops.foreach(-239, 239): i =>
           val expected = fn(i)
@@ -131,16 +129,16 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
   
   "Parser for integer distributions" should "parse plain literals well" in:
     for ((str, dist) <- Seq(
-      "42" -> ((x: Int) => ConstantDistribution(42)),
-      "4 * x div 3" -> ((x: Int) => ConstantDistribution(4 * x / 3)),
-      "4 * (x div 3)" -> ((x: Int) => ConstantDistribution(4 * (x / 3))),
-      "uniform(0, 5)" -> ((x: Int) => UniformDistribution(0, 5)),
-      "uniform(x div 2, x)" -> ((x: Int) => UniformDistribution(x / 2, x)),
-      "powerLaw(x, 1.5)" -> ((x: Int) => PowerLawDistribution(x, 1.5)),
-      "powerLaw(4 * x, 2.5)" -> ((x: Int) => PowerLawDistribution(4 * x, 2.5)),
-      "powerLaw(round(3 + log(x + 1)), 2)" -> ((x: Int) => PowerLawDistribution(math.round(3 + math.log(x + 1)).toInt, 2)),
-      "binomial(x, 0.5)" -> ((x: Int) => BinomialDistribution(x, 0.5)),
-    )) do SetupParser.evaluateAsIntDistributionFunction(str, "x") match
+      "x => 42" -> ((x: Int) => ConstantDistribution(42)),
+      "x => 4 * x div 3" -> ((x: Int) => ConstantDistribution(4 * x / 3)),
+      "x => 4 * (x div 3)" -> ((x: Int) => ConstantDistribution(4 * (x / 3))),
+      "n => uniform(0, 5)" -> ((x: Int) => UniformDistribution(0, 5)),
+      "d => uniform(d div 2, d)" -> ((x: Int) => UniformDistribution(x / 2, x)),
+      "qq => powerLaw(qq, 1.5)" -> ((x: Int) => PowerLawDistribution(x, 1.5)),
+      "x => powerLaw(4 * x, 2.5)" -> ((x: Int) => PowerLawDistribution(4 * x, 2.5)),
+      "x => powerLaw(round(3 + log(x + 1)), 2)" -> ((x: Int) => PowerLawDistribution(math.round(3 + math.log(x + 1)).toInt, 2)),
+      "x => binomial(x, 0.5)" -> ((x: Int) => BinomialDistribution(x, 0.5)),
+    )) do SetupParser.evaluateAsIntDistributionFunction(str) match
       case Left(err) => fail(s"Distribution '$str' should succeed but failed with errors:\n$err")
       case Right(fun) => Loops.foreach(1, 239): i =>
         val expected = dist(i)
@@ -149,11 +147,13 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
 
   it should "parse more complicated expressions" in:
     for ((str, dist) <- Seq(
-      "1 + binomial(max(0, x - 2), 0.5)" -> ((x: Int) => 1 + BinomialDistribution(math.max(0, x - 2), 0.5)),
-      "1 + powerLaw(max(1, x - 2), 1.5)" -> ((x: Int) => 1 + PowerLawDistribution(math.max(1, x - 2), 1.5)),
-      "2 * binomial(x div 2, 1 / x) - uniform(x div 2, x)" -> ((x: Int) => 2 * BinomialDistribution(x / 2, 1.0 / x) - UniformDistribution(x / 2, x)),
-      "symmetric(4 * uniform(4 * x, 5 * x))" -> ((x: Int) => (4 * UniformDistribution(4 * x, 5 * x)).symmetric),
-    )) do SetupParser.evaluateAsIntDistributionFunction(str, "x") match
+      "p => 1 + binomial(max(0, p - 2), 0.5)" -> ((x: Int) => 1 + BinomialDistribution(math.max(0, x - 2), 0.5)),
+      "dist => 1 + powerLaw(max(1, dist - 2), 1.5)" -> ((x: Int) => 1 + PowerLawDistribution(math.max(1, x - 2), 1.5)),
+      "x => 2 * binomial(x div 2, 1 / x) - uniform(x div 2, x)" -> ((x: Int) => 2 * BinomialDistribution(x / 2, 1.0 / x) - UniformDistribution(x / 2, x)),
+      "x => symmetric(4 * uniform(4 * x, 5 * x))" -> ((x: Int) => (4 * UniformDistribution(4 * x, 5 * x)).symmetric),
+      "1 + (variable => 4 * variable)" -> ((x: Int) => ConstantDistribution(1 + 4 * x)),
+      "(a => uniform(4, a + 4)) + (b => uniform(6, 6 + 3 * b))" -> ((x: Int) => UniformDistribution(4, x + 4) + UniformDistribution(6, 6 + 3 * x)),
+    )) do SetupParser.evaluateAsIntDistributionFunction(str) match
       case Left(err) => fail(s"Distribution '$str' should succeed but failed with errors:\n$err")
       case Right(fun) => Loops.foreach(1, 239): i =>
         val expected = dist(i)

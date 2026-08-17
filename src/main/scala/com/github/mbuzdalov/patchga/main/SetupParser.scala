@@ -26,6 +26,7 @@ object SetupParser:
   private case class Variable(pos: Int, name: String) extends Expression
   private case class Constant(pos: Int, value: String) extends Expression
   private case class Application(pos: Int, function: String, arguments: IArray[Expression]) extends Expression
+  private case class Lambda(pos: Int, variable: String, expression: Expression) extends Expression
 
   // Distribution: Parser
   
@@ -51,8 +52,8 @@ object SetupParser:
   private def factor[$: P]: P[Expression] = P(variableOrApplication | parentheses | nnConstantExp)
   private def product[$: P]: P[Expression] = P(factor ~ (Index ~ StringIn("*", "/", "div").! ~/ factor).rep).map(unwrapInfix)
   private def sum[$: P]: P[Expression] = P(Index ~ plusMinusOpt.! ~ product ~ (Index ~ CharIn("+\\-").! ~/ product).rep).map(unwrapInfix2)
-
-  private def expression[$: P]: P[Expression] = P(sum)
+  private def lambda[$: P]: P[Expression] = P(Index ~ identifier.! ~ "=>" ~/ expression).map(Lambda.apply)
+  private def expression[$: P]: P[Expression] = P(lambda | sum)
   private def exactExpression[$: P]: P[Expression] = P(Start ~ expression ~ End)
   
   // Distribution: Interpretation error reporting machinery
@@ -144,6 +145,7 @@ object SetupParser:
     case Constant(index, value) => value.toIntOption match
       case Some(v) => Right(v)
       case None => error(index, s"Constant '$value' cannot be parsed as an Int")
+    case l: Lambda => error(l.pos, s"Lambda expression cannot be parsed as an Int")
     case a@Application(index, fun, args) =>
       given Application = a // puts the current application in the context for removing some boilerplate
       fun match
@@ -163,6 +165,7 @@ object SetupParser:
     case Constant(index, value) => value.toDoubleOption match
       case Some(v) => Right(v)
       case None => error(index, s"Constant '$value' cannot be parsed as a Double")
+    case l: Lambda => error(l.pos, s"Lambda expression cannot be parsed as a Double")
     case a@Application(index, fun, args) =>
       given Application = a // puts the current application in the context for removing some boilerplate
       fun match
@@ -180,15 +183,19 @@ object SetupParser:
         case "round" => ensureOne(args).map(interpretAsDouble).joinRight.map(roundDbl)
         case _ => error(index, s"Unknown function in the Double context: '$fun'")
   
-  private def interpretAsIntIntFunction(varName: String)(e: Expression): Either[Errors, Int => Int] =
+  private def interpretAsIntIntFunction(varName: Option[String])(e: Expression): Either[Errors, Int => Int] =
     // First, try to greedily parse this as int
     interpretAsInt(e) match
       case Right(v) => Right((_: Int) => v)
       case Left(intErr) => e match
         // and only if greedily parsing as int fails, try to parse as a function
-        case Variable(index, `varName`) => Right((v: Int) => v)
-        case Variable(index, otherName) => error(index, s"Variable '$otherName' is not known")
+        case Variable(index, name) => varName match
+          case Some(vn) if name == vn => Right((n: Int) => n)
+          case _ => error(index, s"Variable '$name' is not known")
         case Constant(index, value) => Left(intErr)
+        case Lambda(index, name, expr) => varName match
+          case Some(vn) => error(index, "Nested lambda expressions are not supported")
+          case None => interpretAsIntIntFunction(Some(name))(expr)
         case a@Application(index, fun, args) =>
           given Application = a // puts the current application in the context for removing some boilerplate
           fun match
@@ -203,15 +210,19 @@ object SetupParser:
             case "round" => ensureOne(args).map(interpretAsIntDoubleFunction(varName)).joinRight.map(lift(v => roundDbl(v).toInt))
             case _ => error(index, s"Unknown function in the Int=>Int context: '$fun'")
   
-  private def interpretAsIntDoubleFunction(varName: String)(e: Expression): Either[Errors, Int => Double] =
+  private def interpretAsIntDoubleFunction(varName: Option[String])(e: Expression): Either[Errors, Int => Double] =
     // First, try to greedily parse this as double
     interpretAsDouble(e) match
       case Right(v) => Right((_: Int) => v)
       case Left(dblErr) => e match
         // and only if greedily parsing as double fails, try to parse as a function
-        case Variable(index, `varName`) => Right((v: Int) => v)
-        case Variable(index, otherName) => error(index, s"Variable '$otherName' is not known")
+        case Variable(index, name) => varName match
+          case Some(vn) if name == vn => Right((n: Int) => n.toDouble)
+          case _ => error(index, s"Variable '$name' is not known")
         case Constant(index, value) => Left(dblErr)
+        case Lambda(index, name, expr) => varName match
+          case Some(vn) => error(index, "Nested lambda expressions are not supported")
+          case None => interpretAsIntDoubleFunction(Some(name))(expr)
         case a@Application(index, fun, args) =>
           given Application = a // puts the current application in the context for removing some boilerplate
           fun match
@@ -229,7 +240,7 @@ object SetupParser:
             case "div" => ensureTwo(args).map(interpretAsIntIntFunction(varName).forPair).joinRight.map(lift[Int, Int](_ / _).tupled).map(f => (v: Int) => f(v).toDouble)
             case _ => error(index, s"Unknown function in the Int=>Double context: '$fun'")
   
-  private def interpretAsIntDistributionFunction(varName: String)(e: Expression): Either[Errors, Int => IntegerDistribution] =
+  private def interpretAsIntDistributionFunction(varName: Option[String])(e: Expression): Either[Errors, Int => IntegerDistribution] =
     // First, try to interpret this as int => int
     interpretAsIntIntFunction(varName)(e) match
       case Right(v) => Right((n: Int) => ConstantDistribution(v(n)))
@@ -248,6 +259,9 @@ object SetupParser:
             case "binomial" => ensureTwo(args).map((interpretAsIntIntFunction(varName), interpretAsIntDoubleFunction(varName)).lift).joinRight.map:
               case (size, p) => (n: Int) => BinomialDistribution(size(n), p(n))
             case _ => error(index, s"Unknown function in the Int=>IntegerDistribution context: '$fun'")
+        case Lambda(index, name, expr) => varName match
+          case Some(vn) => error(index, "Nested lambda expressions are not supported")
+          case None => interpretAsIntDistributionFunction(Some(name))(expr)
         case _ => Left(iiErr) // variables and constants should have been parsed via int=>int
   
   // Distribution: External API
@@ -262,18 +276,18 @@ object SetupParser:
       case Success(tree, _) => interpretAsDouble(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
 
-  def evaluateAsIntIntFunction(expr: String, varName: String): Either[String, Int => Int] =
+  def evaluateAsIntIntFunction(expr: String): Either[String, Int => Int] =
     parse(expr, exactExpression(using _)) match
-      case Success(tree, _) => interpretAsIntIntFunction(varName)(tree).left.map(prettyPrintErrors(expr))
+      case Success(tree, _) => interpretAsIntIntFunction(None)(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
   
-  def evaluateAsIntDoubleFunction(expr: String, varName: String): Either[String, Int => Double] =
+  def evaluateAsIntDoubleFunction(expr: String): Either[String, Int => Double] =
     parse(expr, exactExpression(using _)) match
-      case Success(tree, _) => interpretAsIntDoubleFunction(varName)(tree).left.map(prettyPrintErrors(expr))
+      case Success(tree, _) => interpretAsIntDoubleFunction(None)(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
       
-  def evaluateAsIntDistributionFunction(expr: String, varName: String): Either[String, Int => IntegerDistribution] =
+  def evaluateAsIntDistributionFunction(expr: String): Either[String, Int => IntegerDistribution] =
     parse(expr, exactExpression(using _)) match
-      case Success(tree, _) => interpretAsIntDistributionFunction(varName)(tree).left.map(prettyPrintErrors(expr))
+      case Success(tree, _) => interpretAsIntDistributionFunction(None)(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
 end SetupParser
