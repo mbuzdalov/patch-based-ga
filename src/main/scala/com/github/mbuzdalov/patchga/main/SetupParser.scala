@@ -29,33 +29,31 @@ object SetupParser:
 
   // Distribution: Parser
   
-  private object DistributionParser:
-    private def unwrapInfix(tree: (Expression, Seq[(Int, String, Expression)])): Expression =
-      tree._2.foldLeft(tree._1)((left, arg) => Application(arg._1, arg._2, IArray(left, arg._3)))
-    
-    private def unwrapInfix2(tree: (Int, String, Expression, Seq[(Int, String, Expression)])): Expression =
-      val newHead = tree._2 match
-        case "" | "+" => tree._3
-        case "-" => Application(tree._1, "-", IArray(Constant(tree._1, "0"), tree._3))
-        case _ => throw AssertionError(s"tree._1 is '${tree._1}'")
-      unwrapInfix((newHead, tree._4))
-    
-    private def nnConstantExp[S: P]: P[Expression] = P(Index ~~ nnConstant.!).map((index, value) => Constant(index, value))
-    private def variableOrApplication[$: P]: P[Expression] = P(
-      Index ~~ identifier.! ~ ("(" ~/ expression.rep(sep = ",") ~ ")").?
-    ).map: (index, id, maybeArgs) =>
-      maybeArgs match
-        case None => Variable(index, id)
-        case Some(args) => Application(index, id, IArray(args*))
-    
-    private def parentheses[$: P]: P[Expression] = P("(" ~/ expression ~ ")")
-    private def factor[$: P]: P[Expression] = P(variableOrApplication | parentheses | nnConstantExp)
-    private def product[$: P]: P[Expression] = P(factor ~ (Index ~ StringIn("*", "/", "div").! ~/ factor).rep).map(unwrapInfix)
-    private def sum[$: P]: P[Expression] = P(Index ~ plusMinusOpt.! ~ product ~ (Index ~ CharIn("+\\-").! ~/ product).rep).map(unwrapInfix2)
+  private def unwrapInfix(tree: (Expression, Seq[(Int, String, Expression)])): Expression =
+    tree._2.foldLeft(tree._1)((left, arg) => Application(arg._1, arg._2, IArray(left, arg._3)))
+  
+  private def unwrapInfix2(tree: (Int, String, Expression, Seq[(Int, String, Expression)])): Expression =
+    val newHead = tree._2 match
+      case "" | "+" => tree._3
+      case "-" => Application(tree._1, "-", IArray(Constant(tree._1, "0"), tree._3))
+      case _ => throw AssertionError(s"tree._1 is '${tree._1}'")
+    unwrapInfix((newHead, tree._4))
+  
+  private def nnConstantExp[S: P]: P[Expression] = P(Index ~~ nnConstant.!).map((index, value) => Constant(index, value))
+  private def variableOrApplication[$: P]: P[Expression] = P(
+    Index ~~ identifier.! ~ ("(" ~/ expression.rep(sep = ",") ~ ")").?
+  ).map: (index, id, maybeArgs) =>
+    maybeArgs match
+      case None => Variable(index, id)
+      case Some(args) => Application(index, id, IArray(args*))
+  
+  private def parentheses[$: P]: P[Expression] = P("(" ~/ expression ~ ")")
+  private def factor[$: P]: P[Expression] = P(variableOrApplication | parentheses | nnConstantExp)
+  private def product[$: P]: P[Expression] = P(factor ~ (Index ~ StringIn("*", "/", "div").! ~/ factor).rep).map(unwrapInfix)
+  private def sum[$: P]: P[Expression] = P(Index ~ plusMinusOpt.! ~ product ~ (Index ~ CharIn("+\\-").! ~/ product).rep).map(unwrapInfix2)
 
-    // un-private this if/when the downstream parser needs it
-    private def expression[$: P]: P[Expression] = P(sum)
-    def exactExpression[$: P]: P[Expression] = P(Start ~ expression ~ End)
+  private def expression[$: P]: P[Expression] = P(sum)
+  private def exactExpression[$: P]: P[Expression] = P(Start ~ expression ~ End)
   
   // Distribution: Interpretation error reporting machinery
   
@@ -255,27 +253,27 @@ object SetupParser:
   // Distribution: External API
   
   def evaluateAsInt(expr: String): Either[String, Int] =
-    parse(expr, DistributionParser.exactExpression(using _)) match
+    parse(expr, exactExpression(using _)) match
       case Success(tree, _) => interpretAsInt(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
   
   def evaluateAsDouble(expr: String): Either[String, Double] =
-    parse(expr, DistributionParser.exactExpression(using _)) match
+    parse(expr, exactExpression(using _)) match
       case Success(tree, _) => interpretAsDouble(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
 
   def evaluateAsIntIntFunction(expr: String, varName: String): Either[String, Int => Int] =
-    parse(expr, DistributionParser.exactExpression(using _)) match
+    parse(expr, exactExpression(using _)) match
       case Success(tree, _) => interpretAsIntIntFunction(varName)(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
   
   def evaluateAsIntDoubleFunction(expr: String, varName: String): Either[String, Int => Double] =
-    parse(expr, DistributionParser.exactExpression(using _)) match
+    parse(expr, exactExpression(using _)) match
       case Success(tree, _) => interpretAsIntDoubleFunction(varName)(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
       
   def evaluateAsIntDistributionFunction(expr: String, varName: String): Either[String, Int => IntegerDistribution] =
-    parse(expr, DistributionParser.exactExpression(using _)) match
+    parse(expr, exactExpression(using _)) match
       case Success(tree, _) => interpretAsIntDistributionFunction(varName)(tree).left.map(prettyPrintErrors(expr))
       case f: Failure => Left(f.trace().longAggregateMsg)
 end SetupParser
