@@ -22,39 +22,41 @@ object SetupParser:
   
   // Distributions: Intermediate representation structures
   
-  private sealed trait Expression
-  private case class Variable(pos: Int, name: String) extends Expression
-  private case class Constant(pos: Int, value: String) extends Expression
-  private case class Application(pos: Int, function: String, arguments: IArray[Expression]) extends Expression
-  private case class Lambda(pos: Int, variable: String, expression: Expression) extends Expression
+  private sealed trait MathExpression:
+    def index: Int
+
+  private case class Variable(index: Int, name: String) extends MathExpression
+  private case class Constant(index: Int, value: String) extends MathExpression
+  private case class Application(index: Int, function: String, arguments: IArray[MathExpression]) extends MathExpression
+  private case class Lambda(index: Int, variable: String, expression: MathExpression) extends MathExpression
 
   // Distribution: Parser
   
-  private def unwrapInfix(tree: (Expression, Seq[(Int, String, Expression)])): Expression =
+  private def unwrapInfix(tree: (MathExpression, Seq[(Int, String, MathExpression)])): MathExpression =
     tree._2.foldLeft(tree._1)((left, arg) => Application(arg._1, arg._2, IArray(left, arg._3)))
   
-  private def unwrapInfix2(tree: (Int, String, Expression, Seq[(Int, String, Expression)])): Expression =
+  private def unwrapInfix2(tree: (Int, String, MathExpression, Seq[(Int, String, MathExpression)])): MathExpression =
     val newHead = tree._2 match
       case "" | "+" => tree._3
       case "-" => Application(tree._1, "-", IArray(Constant(tree._1, "0"), tree._3))
       case _ => throw AssertionError(s"tree._1 is '${tree._1}'")
     unwrapInfix((newHead, tree._4))
   
-  private def nnConstantExp[S: P]: P[Expression] = P(Index ~~ nnConstant.!).map((index, value) => Constant(index, value))
-  private def variableOrApplication[$: P]: P[Expression] = P(
+  private def nnConstantExp[S: P]: P[MathExpression] = P(Index ~~ nnConstant.!).map((index, value) => Constant(index, value))
+  private def variableOrApplication[$: P]: P[MathExpression] = P(
     Index ~~ identifier.! ~ ("(" ~/ expression.rep(sep = ",") ~ ")").?
   ).map: (index, id, maybeArgs) =>
     maybeArgs match
       case None => Variable(index, id)
       case Some(args) => Application(index, id, IArray(args*))
   
-  private def parentheses[$: P]: P[Expression] = P("(" ~/ expression ~ ")")
-  private def factor[$: P]: P[Expression] = P(variableOrApplication | parentheses | nnConstantExp)
-  private def product[$: P]: P[Expression] = P(factor ~ (Index ~ StringIn("*", "/", "div").! ~/ factor).rep).map(unwrapInfix)
-  private def sum[$: P]: P[Expression] = P(Index ~ plusMinusOpt.! ~ product ~ (Index ~ CharIn("+\\-").! ~/ product).rep).map(unwrapInfix2)
-  private def lambda[$: P]: P[Expression] = P(Index ~ identifier.! ~ "=>" ~/ expression).map(Lambda.apply)
-  private def expression[$: P]: P[Expression] = P(lambda | sum)
-  private def exactExpression[$: P]: P[Expression] = P(Start ~ expression ~ End)
+  private def parentheses[$: P]: P[MathExpression] = P("(" ~/ expression ~ ")")
+  private def factor[$: P]: P[MathExpression] = P(variableOrApplication | parentheses | nnConstantExp)
+  private def product[$: P]: P[MathExpression] = P(factor ~ (Index ~ StringIn("*", "/", "div").! ~/ factor).rep).map(unwrapInfix)
+  private def sum[$: P]: P[MathExpression] = P(Index ~ plusMinusOpt.! ~ product ~ (Index ~ CharIn("+\\-").! ~/ product).rep).map(unwrapInfix2)
+  private def lambda[$: P]: P[MathExpression] = P(Index ~ identifier.! ~ "=>" ~/ expression).map(Lambda.apply)
+  private def expression[$: P]: P[MathExpression] = P(lambda | sum)
+  private def exactExpression[$: P]: P[MathExpression] = P(Start ~ expression ~ End)
   
   // Distribution: Interpretation error reporting machinery
   
@@ -98,18 +100,18 @@ object SetupParser:
   private inline def lift[A, R](inline op: (R, R) => R): (A => R, A => R) => A => R =
     (a, b) => (x: A) => op(a(x), b(x))
   
-  private def ensureNonEmpty(args: IArray[Expression])(using application: Application): Either[Errors, IArray[Expression]] =
-    if args.length > 0 then Right(args) else error(application.pos, s"'${application.function}' requires at least one argument")
+  private def ensureNonEmpty(args: IArray[MathExpression])(using application: Application): Either[Errors, IArray[MathExpression]] =
+    if args.length > 0 then Right(args) else error(application.index, s"'${application.function}' requires at least one argument")
   
-  private def ensureOne(args: IArray[Expression])(using application: Application): Either[Errors, Expression] =
-    if args.length == 1 then Right(args(0)) else error(application.pos, s"'${application.function}' requires one argument")
+  private def ensureOne(args: IArray[MathExpression])(using application: Application): Either[Errors, MathExpression] =
+    if args.length == 1 then Right(args(0)) else error(application.index, s"'${application.function}' requires one argument")
   
-  private def ensureTwo(args: IArray[Expression])(using application: Application): Either[Errors, (Expression, Expression)] =
+  private def ensureTwo(args: IArray[MathExpression])(using application: Application): Either[Errors, (MathExpression, MathExpression)] =
     if args.length == 2 then Right(args(0), args(1))
-    else error(application.pos, s"'${application.function}' requires two arguments")
+    else error(application.index, s"'${application.function}' requires two arguments")
   
-  extension[T: ClassTag](interpreter: Expression => Either[Errors, T])
-    private def forPair(arg: (Expression, Expression)): Either[Errors, (T, T)] =
+  extension[T: ClassTag](interpreter: MathExpression => Either[Errors, T])
+    private def forPair(arg: (MathExpression, MathExpression)): Either[Errors, (T, T)] =
       interpreter(arg._1) match
         case Left(e1) => interpreter(arg._2) match
           case Left(e2) => Left(e1 ++ e2)
@@ -118,7 +120,7 @@ object SetupParser:
           case Left(e2) => Left(e2)
           case Right(v2) => Right(v1, v2)
 
-    private def forSeq(arg: IArray[Expression]): Either[Errors, IArray[T]] =
+    private def forSeq(arg: IArray[MathExpression]): Either[Errors, IArray[T]] =
       val errorBuilder = IndexedSeq.newBuilder[ErrorMessage]
       val result = Array.ofDim[T](arg.length)
       Loops.foreach(0, arg.length): i =>
@@ -128,8 +130,8 @@ object SetupParser:
       val errors = errorBuilder.result()
       if errors.isEmpty then Right(IArray.unsafeFromArray(result)) else Left(errors)
   
-  extension[A, B](pair: (Expression => Either[Errors, A], Expression => Either[Errors, B]))
-    private def lift(arg: (Expression, Expression)): Either[Errors, (A, B)] =
+  extension[A, B](pair: (MathExpression => Either[Errors, A], MathExpression => Either[Errors, B]))
+    private def lift(arg: (MathExpression, MathExpression)): Either[Errors, (A, B)] =
       pair._1(arg._1) match
         case Left(e1) => pair._2(arg._2) match
           case Left(e2) => Left(e1 ++ e2)
@@ -140,12 +142,12 @@ object SetupParser:
   
   // Distribution: Actual interpreters
   
-  private def interpretAsInt(e: Expression): Either[Errors, Int] = e match
+  private def interpretAsInt(e: MathExpression): Either[Errors, Int] = e match
     case Variable(index, name) => error(index, s"Variable '$name' is not an Int")
     case Constant(index, value) => value.toIntOption match
       case Some(v) => Right(v)
       case None => error(index, s"Constant '$value' cannot be parsed as an Int")
-    case l: Lambda => error(l.pos, s"Lambda expression cannot be parsed as an Int")
+    case l: Lambda => error(l.index, s"Lambda expression cannot be parsed as an Int")
     case a@Application(index, fun, args) =>
       given Application = a // puts the current application in the context for removing some boilerplate
       fun match
@@ -160,12 +162,12 @@ object SetupParser:
         case "round" => ensureOne(args).map(interpretAsDouble).joinRight.map(v => roundDbl(v).toInt)
         case _ => error(index, s"Unknown function in the Int context: '$fun'")
   
-  private def interpretAsDouble(e: Expression): Either[Errors, Double] = e match
+  private def interpretAsDouble(e: MathExpression): Either[Errors, Double] = e match
     case Variable(index, name) => error(index, s"Variable '$name' is not a Double")
     case Constant(index, value) => value.toDoubleOption match
       case Some(v) => Right(v)
       case None => error(index, s"Constant '$value' cannot be parsed as a Double")
-    case l: Lambda => error(l.pos, s"Lambda expression cannot be parsed as a Double")
+    case l: Lambda => error(l.index, s"Lambda expression cannot be parsed as a Double")
     case a@Application(index, fun, args) =>
       given Application = a // puts the current application in the context for removing some boilerplate
       fun match
@@ -183,7 +185,7 @@ object SetupParser:
         case "round" => ensureOne(args).map(interpretAsDouble).joinRight.map(roundDbl)
         case _ => error(index, s"Unknown function in the Double context: '$fun'")
   
-  private def interpretAsIntIntFunction(varName: Option[String])(e: Expression): Either[Errors, Int => Int] =
+  private def interpretAsIntIntFunction(varName: Option[String])(e: MathExpression): Either[Errors, Int => Int] =
     // First, try to greedily parse this as int
     interpretAsInt(e) match
       case Right(v) => Right((_: Int) => v)
@@ -210,7 +212,7 @@ object SetupParser:
             case "round" => ensureOne(args).map(interpretAsIntDoubleFunction(varName)).joinRight.map(lift(v => roundDbl(v).toInt))
             case _ => error(index, s"Unknown function in the Int=>Int context: '$fun'")
   
-  private def interpretAsIntDoubleFunction(varName: Option[String])(e: Expression): Either[Errors, Int => Double] =
+  private def interpretAsIntDoubleFunction(varName: Option[String])(e: MathExpression): Either[Errors, Int => Double] =
     // First, try to greedily parse this as double
     interpretAsDouble(e) match
       case Right(v) => Right((_: Int) => v)
@@ -240,7 +242,7 @@ object SetupParser:
             case "div" => ensureTwo(args).map(interpretAsIntIntFunction(varName).forPair).joinRight.map(lift[Int, Int](_ / _).tupled).map(f => (v: Int) => f(v).toDouble)
             case _ => error(index, s"Unknown function in the Int=>Double context: '$fun'")
   
-  private def interpretAsIntDistributionFunction(varName: Option[String])(e: Expression): Either[Errors, Int => IntegerDistribution] =
+  private def interpretAsIntDistributionFunction(varName: Option[String])(e: MathExpression): Either[Errors, Int => IntegerDistribution] =
     // First, try to interpret this as int => int
     interpretAsIntIntFunction(varName)(e) match
       case Right(v) => Right((n: Int) => ConstantDistribution(v(n)))
