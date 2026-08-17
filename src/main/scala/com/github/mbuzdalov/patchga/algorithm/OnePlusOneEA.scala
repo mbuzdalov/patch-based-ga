@@ -3,10 +3,10 @@ package com.github.mbuzdalov.patchga.algorithm
 import scala.annotation.tailrec
 import com.github.mbuzdalov.patchga.distribution.{BinomialDistribution, ConstantDistribution, IntegerDistribution}
 
-class OnePlusOneEA(distributionSource: Int => IntegerDistribution) extends Optimizer:
+class OnePlusOneEA(mutationDistributionSource: Int => IntegerDistribution) extends Optimizer:
   def optimize(config: Optimizer.Config): Nothing =
     import config.*
-    val distribution = distributionSource(maximumPatchSize)
+    val distribution = mutationDistributionSource(maximumPatchSize)
 
     @tailrec
     def go(curr: IndividualHandle): Nothing =
