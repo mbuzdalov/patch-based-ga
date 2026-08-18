@@ -11,14 +11,14 @@ class NeverForgettingGA(mutationParentSelectionSource: Int => IntegerDistributio
                         firstParentSelectionSource: Int => IntegerDistribution,
                         crossoverProbability: Double,
                         crossoverParentMinimumDistanceSource: Int => IntegerDistribution,
-                        crossoverParentMaximumDistance: Option[Int => Int],
+                        crossoverParentMaximumDistanceSource: Int => Int,
                         secondParentSelectionSource: Int => IntegerDistribution,
                         crossoverDistanceSource: Int => IntegerDistribution) extends Optimizer:
   override def optimize(config: Optimizer.Config): Nothing =
     import config.*
 
-    val crossoverParentDistanceCap = crossoverParentMaximumDistance.map(f => f(maximumPatchSize))
-    crossoverParentDistanceCap.foreach(d => require(d >= 2, "Maximum distance cannot be smaller than 2"))
+    val crossoverParentDistanceCap = crossoverParentMaximumDistanceSource(maximumPatchSize)
+    require(crossoverParentDistanceCap >= 2, "Maximum distance cannot be smaller than 2")
     
     val crossoverSecondParentBuffer = new ArrayBuffer[IndividualHandle]()
     val distanceBuffer = new ArrayBuffer[Int]()
@@ -48,9 +48,7 @@ class NeverForgettingGA(mutationParentSelectionSource: Int => IntegerDistributio
       val index = random.nextInt(indexLo, indexHi + 1)
       source(index)
     
-    def crossoverDistanceOK(d: Int): Boolean = crossoverParentDistanceCap match
-      case None => 2 <= d
-      case Some(dMax) => 2 <= d && d <= dMax
+    def crossoverDistanceOK(d: Int): Boolean = 2 <= d && d <= crossoverParentDistanceCap
     
     @tailrec
     def sampleFirstParentWithDistantEnoughNeighbors(nRemaining: Int): Option[IndividualHandle] =
@@ -116,7 +114,7 @@ object NeverForgettingGA:
                    firstParentSelectionBeta: Double, 
                    crossoverProbability: Double,
                    crossoverParentMinimumDistanceBeta: Double,
-                   crossoverParentMaximumDistance: Option[Int => Int],
+                   crossoverParentMaximumDistance: Int => Int,
                    secondParentSelectionBeta: Double,
                    crossoverDistanceSource: Int => IntegerDistribution): NeverForgettingGA = NeverForgettingGA(
     mutationParentSelectionSource = PowerLawDistribution(_, mutationParentSelectionBeta),
@@ -124,7 +122,7 @@ object NeverForgettingGA:
     firstParentSelectionSource = PowerLawDistribution(_, firstParentSelectionBeta),
     crossoverProbability = crossoverProbability,
     crossoverParentMinimumDistanceSource = PowerLawDistribution(_, crossoverParentMinimumDistanceBeta),
-    crossoverParentMaximumDistance = crossoverParentMaximumDistance,
+    crossoverParentMaximumDistanceSource = crossoverParentMaximumDistance,
     secondParentSelectionSource = PowerLawDistribution(_, secondParentSelectionBeta),
     crossoverDistanceSource = crossoverDistanceSource,
   )

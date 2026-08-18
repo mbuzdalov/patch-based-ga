@@ -104,11 +104,11 @@ class NaiveOneMaxTests extends IntProblemTestsBase:
   "NFGA with UX on OneMax" should "work well with naive population w/o genealogy" in
     simpleTest(64, 128, 256)
               (n => 4 * n * math.log(math.log(n)))
-              (NeverForgettingGA.withPowerLaw(2.5, 1.5, 2.5, 0.5, 1.5, None, 2.5, n => BinomialDistribution(n - 2, 0.5) + 1))
+              (NeverForgettingGA.withPowerLaw(2.5, 1.5, 2.5, 0.5, 1.5, n => n, 2.5, n => BinomialDistribution(n - 2, 0.5) + 1))
               (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = false))
 
   it should "work well with naive population with genealogy" in
     simpleTest(64, 128, 256)
               (n => 4 * n * math.log(math.log(n)))
-              (NeverForgettingGA.withPowerLaw(2.5, 1.5, 2.5, 0.5, 1.5, None, 2.5, n => BinomialDistribution(n - 2, 0.5) + 1))
+              (NeverForgettingGA.withPowerLaw(2.5, 1.5, 2.5, 0.5, 1.5, n => n, 2.5, n => BinomialDistribution(n - 2, 0.5) + 1))
               (n => Problems.naiveOneMaxFT(n, allowDuplicates = true, disableDiscard = false, supportGenealogy = true))
