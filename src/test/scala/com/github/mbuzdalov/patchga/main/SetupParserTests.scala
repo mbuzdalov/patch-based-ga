@@ -1,6 +1,9 @@
 package com.github.mbuzdalov.patchga.main
 
+import com.github.mbuzdalov.patchga.algorithm.{DEGAPlus, MuPlusOneGA, NeverForgettingGA, OnePlusLLGA, OnePlusOneEA, Optimizer}
 import com.github.mbuzdalov.patchga.distribution.*
+import com.github.mbuzdalov.patchga.infra.FixedTargetTerminator
+import com.github.mbuzdalov.patchga.problem.Problems
 import com.github.mbuzdalov.patchga.util.Loops
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -159,3 +162,135 @@ class SetupParserTests extends AnyFlatSpec with should.Matchers:
         val expected = dist(i)
         val found = fun(i)
         validateDistributions(expected, found, str, i)
+
+  private def algoSanityCheck(algo: Optimizer): Unit =
+    FixedTargetTerminator.runUntilTargetReached(algo, Problems.incrementalOneMaxFT(10, false, false), 10).nEvaluations should be <= 1000L
+  
+  "Parser for algorithms" should "parse DEGA" in:
+    val config =
+      """DEGA:
+        |  - mutationDistribution: n => powerLaw(n, 1.5)
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) => fail(s"DEGA's config should succeed but failed with errors:\n$err")
+      case Right(algo) =>
+        algo.isInstanceOf[DEGAPlus] shouldBe true
+        algoSanityCheck(algo)
+  
+  it should "produce error for DEGA when the parameter name is mistyped" in:
+    val config =
+      """DEGA:
+        |  - mutationDistributon: n => powerLaw(n, 1.5)
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) =>
+      case Right(algo) => fail(s"This DEGA's config should fail because of the typo")
+  
+  it should "produce error for DEGA when the parameter type is incorrect" in:
+    val config =
+      """DEGA:
+        |  - mutationDistribution: 1.5
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) =>
+      case Right(algo) => fail(s"This DEGA's config should fail because of the wrong parameter type")
+  
+  it should "produce error for DEGA when there is an extra parameter" in:
+    val config =
+      """DEGA:
+        |  - mutationDistribution: n => 1
+        |  - unnecessaryParameter: 42
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) =>
+      case Right(algo) => fail(s"This DEGA's config should fail because of the extra parameter")
+  
+  it should "parse MuPlusOneGA" in:
+    val config =
+      """MuPlusOneGA:
+        |  - populationSize: 10
+        |  - crossoverProbability: 0.456
+        |  - mutationOnlyDistribution: n => powerLaw(n, 1.5)
+        |  - mutationAfterCrossoverDistribution: n => powerLaw(n + 1, 1.5) - 1
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) => fail(s"MuPlusOneGA's config should succeed but failed with errors:\n$err")
+      case Right(algo) =>
+        algo.isInstanceOf[MuPlusOneGA] shouldBe true
+        algoSanityCheck(algo)
+  
+  it should "parse MuPlusOneGA in a different order" in:
+    val config =
+      """MuPlusOneGA:
+        |  - mutationOnlyDistribution: n => powerLaw(n, 1.5)
+        |  - crossoverProbability: 0.456
+        |  - mutationAfterCrossoverDistribution: n => powerLaw(n + 1, 1.5) - 1
+        |  - populationSize: 10
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) => fail(s"MuPlusOneGA's config should succeed but failed with errors:\n$err")
+      case Right(algo) =>
+        algo.isInstanceOf[MuPlusOneGA] shouldBe true
+        algoSanityCheck(algo)
+  
+  it should "parse NFGA with all distributions set to beta=1.5" in:
+    val config =
+      """NFGA:
+        |  - mutationParentSelectionDistribution: q => powerLaw(q, 1.5)
+        |  - firstParentSelectionDistribution:    q => powerLaw(q, 1.5)
+        |  - secondParentSelectionDistribution:   q => powerLaw(q, 1.5)
+        |  - mutationDistanceDistribution:        n => powerLaw(n, 1.5)
+        |  - crossoverParentMinimumDistance:      n => powerLaw(n, 1.5)
+        |  - crossoverDistanceDistribution:       d => powerLaw(d - 1, 1.5)
+        |  - crossoverParentMaximumDistance:      n => n
+        |  - crossoverProbability:                0.5
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) => fail(s"NFGA's config should succeed but failed with errors:\n$err")
+      case Right(algo) =>
+        algo.isInstanceOf[NeverForgettingGA] shouldBe true
+        algoSanityCheck(algo)
+  
+  it should "parse NFGA with incorrect parameters, which then fails" in :
+    val config =
+      """NFGA:
+        |  - mutationParentSelectionDistribution: q => powerLaw(q, 1.5)
+        |  - firstParentSelectionDistribution:    q => powerLaw(q, 1.5)
+        |  - secondParentSelectionDistribution:   q => powerLaw(q, 1.5)
+        |  - mutationDistanceDistribution:        n => powerLaw(n, 1.5)
+        |  - crossoverParentMinimumDistance:      n => powerLaw(n, 1.5)
+        |  - crossoverDistanceDistribution:       d => powerLaw(d, 1.5)
+        |  - crossoverParentMaximumDistance:      n => n
+        |  - crossoverProbability:                0.5
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) => fail(s"NFGA's config should succeed but failed with errors:\n$err")
+      case Right(algo) =>
+        algo.isInstanceOf[NeverForgettingGA] shouldBe true
+        an[AssertionError] shouldBe thrownBy:
+          algoSanityCheck(algo)
+  
+  it should "parse OnePlusLLGA" in :
+    val config =
+      """OnePlusLLGA:
+        |  - mutationDistribution: n => powerLaw(n, 2.5)
+        |  - crossoverDistribution: n => powerLaw(n, 2.5)
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) => fail(s"OnePlusLLGA's config should succeed but failed with errors:\n$err")
+      case Right(algo) =>
+        algo.isInstanceOf[OnePlusLLGA] shouldBe true
+        algoSanityCheck(algo)
+
+  // todo: support 'n => max(1, binomial(n, 1/n))', the classical shift distribution
+  it should "parse OnePlusOneEA" in :
+    val config =
+      """OnePlusOneEA:
+        |  - mutationDistribution: n => binomial(n - 1, 1 / n) + 1
+        |""".stripMargin
+    SetupParser.evaluateAsOptimizer(config) match
+      case Left(err) => fail(s"OnePlusOneEA's config should succeed but failed with errors:\n$err")
+      case Right(algo) =>
+        algo.isInstanceOf[OnePlusOneEA] shouldBe true
+        algoSanityCheck(algo)
+  
